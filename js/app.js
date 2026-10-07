@@ -11,7 +11,7 @@ const CHEV=`<svg class="chev" viewBox="0 0 16 16" aria-hidden="true"><path d="M5
 const foldHead=(k,inner)=>`<button class="fold" data-act="fold" data-k="${k}" aria-expanded="${!isF(k)}">${CHEV}${inner}</button>`;
 let S=Opslag.laadGegevens()||structuredClone(seed);
 let done=Opslag.laadAfgevinkt();
-let view='ther', activeClient='c1', fbClient='c1', editSchema=null, editItem=null, sheet=null;
+let view='ther', activeClient='c1', fbClient='c1', editSchema=null, editItem=null, sheet=null, linkCard=null;
 const saveFold=()=>Opslag.bewaarIngeklapt(folded);
 const save=()=>{allSchemas().forEach(sortItems);Opslag.bewaarGegevens(S);Opslag.bewaarAfgevinkt(done)};
 const $=s=>document.querySelector(s);
@@ -36,13 +36,13 @@ function render(){
   $('#v-ther').setAttribute('aria-pressed',view==='ther');
   $('#v-cli').setAttribute('aria-pressed',view==='cli');
   $('#app').innerHTML=view==='ther'?therapist():client();
-  $('#overlay').innerHTML=sheet?sheetHtml():'';
+  $('#overlay').innerHTML=sheet?sheetHtml():linkCard?linkHtml():'';
 }
 
 /* ---------- Therapeut ---------- */
 function cardHtml(c){
   const used=S.schemas.filter(s=>s.items.some(i=>i.card===c.id)).length;
-  return `<div class="card" data-cat="${c.cat}" data-drag="card" data-card="${c.id}" tabindex="0" aria-label="${esc(c.name)}">
+  return `<div class="card" data-cat="${c.cat}" data-drag="card" data-card="${c.id}" data-act="link-card" data-id="${c.id}" tabindex="0" role="button" aria-haspopup="dialog" aria-label="${esc(c.name)}: koppelen aan schema">
     ${GRIP}<div class="card-body"><div class="card-title">${esc(c.name)}</div>
       <div class="card-meta"><span class="cat">${c.cat}</span><span class="num">${doseText(c)}</span>${used?`<span>· in ${used} schema${used>1?"'s":''}</span>`:''}</div></div>
     <button class="icon-btn" data-act="edit-card" data-id="${c.id}" aria-label="${esc(c.name)} bewerken" title="Bewerken">✎</button>
@@ -92,7 +92,7 @@ function columnHtml(s){
 }
 function therapist(){
   return `<div style="margin-top:20px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap"><div><h1>Praktijkoverzicht</h1>
-    <p class="lede">Sleep oefenkaarten naar een schema. Sleep ze terug of naar de prullenbak om ze eruit te halen.</p></div>
+    <p class="lede">Sleep oefenkaarten naar een schema, of klik op een kaart om hem te koppelen. Sleep ze terug of naar de prullenbak om ze eruit te halen.</p></div>
     <button class="btn danger small" data-act="reset-demo" style="flex:0 0 auto">Voorbeelddata herstellen</button></div>
   <section class="section">
     <div class="section-head"><div>${foldHead('lib','<h2>Kaartenbak</h2>')}<p class="lede" style="font-size:.92rem">${S.cards.length} oefeningen</p></div>
@@ -177,6 +177,24 @@ function sheetHtml(){
   </form></div>`;
 }
 
+/* Koppelen zonder slepen: klik op een kaart in de kaartenbak en kies de schema's */
+function linkHtml(){
+  const c=card(linkCard); if(!c){linkCard=null;return ''}
+  const row=(sc,title,sub='')=>{const has=sc.items.some(i=>i.card===c.id);
+    return `<button type="button" class="link-row" data-act="link-toggle" data-s="${sc.id}" aria-pressed="${has}">
+      <span class="link-check" aria-hidden="true">${has?'✓':'+'}</span>
+      <span class="link-name">${title}<small>${sub}${sc.items.length} oefening${sc.items.length===1?'':'en'}</small></span>
+      <span class="link-state">${has?'Staat erin':'Toevoegen'}</span></button>`};
+  const own=S.clients.filter(x=>x.custom);
+  return `<div class="scrim" data-act="close-link"><div class="sheet" role="dialog" aria-label="${esc(c.name)} koppelen aan schema">
+    <div><div class="label">Koppelen aan schema</div><h2>${esc(c.name)}</h2>
+      <p class="lede" style="font-size:.92rem">${c.cat} · standaard <span class="num">${doseText(c)}</span>. Klik op een schema om de kaart toe te voegen of eruit te halen.</p></div>
+    <div class="link-list">${S.schemas.map(sc=>row(sc,esc(sc.name))).join('')||'<p class="empty">Er zijn nog geen schema\'s.</p>'}</div>
+    ${own.length?`<div class="label">Persoonlijke schema's</div><div class="link-list">${own.map(x=>row(x.custom,esc(x.name),esc(x.custom.name)+' · ')).join('')}</div>`:''}
+    <div class="row" style="justify-content:flex-end"><button type="button" class="btn" style="flex:0 0 auto" data-act="close-link">Klaar</button></div>
+  </div></div>`;
+}
+
 /* ---------- Cliënt ---------- */
 /* Stopwatch: telt op, blijft doorlopen als het scherm opnieuw wordt opgebouwd */
 const sw={start:0,acc:0,run:false,h:null};
@@ -186,10 +204,11 @@ function stopwatch(){return `<div class="stopwatch"><div><div class="label">Stop
   <div class="sw-btns"><button class="btn big" data-act="sw-toggle">${sw.run?'❚❚ Pauze':swMs()?'▶ Verder':'▶ Start'}</button><button class="btn ghost big" data-act="sw-reset" ${swMs()?'':'disabled'}>Reset</button></div></div>`}
 function swTick(){const el=$('#sw-time');if(el)el.innerHTML=swFmt(swMs())}
 const HARD=[['😄','Heel makkelijk'],['🙂','Makkelijk'],['😐','Gaat wel'],['😣','Zwaar'],['😫','Heel zwaar']];
+/* Zwaar-smileys: van heel zwaar (links) naar heel makkelijk (rechts); waarde 1 blijft heel makkelijk */
 function rateBlock(cid,eid){
   const r=S.ratings.find(x=>x.c===cid&&x.e===eid&&x.d===today())||{};
   return `<div class="rate">
-    <div class="rate-row"><span>Hoe zwaar?</span><div class="faces">${HARD.map(([f,l],i)=>`<button data-act="rate" data-k="hard" data-v="${i+1}" data-c="${cid}" data-e="${eid}" aria-pressed="${r.hard===i+1}" aria-label="${l}" title="${l}">${f}</button>`).join('')}</div></div>
+    <div class="rate-row"><span>Hoe zwaar?</span><div class="faces">${HARD.map(([f,l],i)=>`<button data-act="rate" data-k="hard" data-v="${i+1}" data-c="${cid}" data-e="${eid}" aria-pressed="${r.hard===i+1}" aria-label="${l}" title="${l}">${f}</button>`).reverse().join('')}</div></div>
     <div class="rate-row"><span>Hoe leuk?</span><div class="faces">${[1,2,3,4,5].map(i=>`<button data-act="rate" data-k="fun" data-v="${i}" data-c="${cid}" data-e="${eid}" aria-pressed="${r.fun===i}" aria-label="${i} van 5 sterren">${r.fun>=i?'⭐':'☆'}</button>`).join('')}</div></div>
   </div>`;
 }
@@ -243,6 +262,11 @@ document.addEventListener('click',ev=>{
   if(a==='close-sheet'){if(b.classList.contains('scrim')&&ev.target!==b)return;sheet=null;render()}
   if(a==='undo'&&undoFn){const f=undoFn;undoFn=null;f()}
   if(a==='new-card'){sheet={id:uid(),name:'',cat:catFilter==='Alle'?'Mobiliteit':catFilter,sets:3,reps:10,hold:0,rest:30,note:''};render();setTimeout(()=>$('#cf-name')?.focus(),0)}
+  if(a==='link-card'){linkCard=b.dataset.id;render();$('#overlay .link-row')?.focus()}
+  if(a==='close-link'){if(b.classList.contains('scrim')&&ev.target!==b)return;const id=linkCard;linkCard=null;render();document.querySelector(`.library [data-card="${id}"]`)?.focus()}
+  if(a==='link-toggle'){const sc=schemaById(b.dataset.s), i=sc.items.findIndex(x=>x.card===linkCard), undo=snapshot();
+    if(i>=0){sc.items.splice(i,1);toast('Uit schema gehaald',undo)}else if(addToSchema(sc.id,linkCard))toast('Kaart toegevoegd aan schema',undo);
+    save();render();$(`#overlay [data-s="${sc.id}"]`)?.focus()}
   if(a==='edit-card'){sheet=structuredClone(card(b.dataset.id));render()}
   if(a==='del-card'){
     if(!b.dataset.confirm){b.dataset.confirm=1;b.textContent='Zeker weten? Klik nogmaals';return}
@@ -297,7 +321,11 @@ document.addEventListener('submit',ev=>{
     c.cat=$('#cf-cat').value;['sets','reps','hold','rest'].forEach(f=>c[f]=Math.max(0,+$('#cf-'+f).value||0));c.note=$('#cf-note').value.trim();
     const i=S.cards.findIndex(x=>x.id===c.id);i>=0?S.cards[i]=c:S.cards.push(c);sheet=null;save();render();toast(i>=0?'Kaart opgeslagen':'Kaart toegevoegd aan de kaartenbak')}
 });
-document.addEventListener('keydown',ev=>{if(ev.key==='Escape'&&sheet){sheet=null;render()}});
+document.addEventListener('keydown',ev=>{
+  if(ev.key==='Escape'&&sheet){sheet=null;render()}
+  if(ev.key==='Escape'&&linkCard){linkCard=null;render()}
+  if((ev.key==='Enter'||ev.key===' ')&&ev.target.matches?.('.library .card')){ev.preventDefault();ev.target.click()}
+});
 
 /* ---------- Slepen (muis én touch) ---------- */
 let drag=null;
@@ -360,7 +388,7 @@ document.addEventListener('pointerup',()=>endDrag(false));
 document.addEventListener('pointercancel',()=>endDrag(true));
 
 $('#v-ther').onclick=()=>{view='ther';render()};
-$('#v-cli').onclick=()=>{view='cli';sheet=null;editSchema=null;render()};
+$('#v-cli').onclick=()=>{view='cli';sheet=null;linkCard=null;editSchema=null;render()};
 $('#to-top').onclick=()=>scrollTo({top:0,behavior:matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth'});
 allSchemas().forEach(sortItems);
 render();
