@@ -1,41 +1,32 @@
 /* Layout: kaartenbak bovenaan, schema's als kolommen eronder (stapelen op telefoon), cliënten en feedback onderaan */
-/* Kleuren uit de huisstijl van Groei Sterker: perzik (#f9b18a, #ffd0b6), crème (#fbf9ed), donkergrijs (#323432).
-   --accent is de donkere perzik voor tekst en randen; --fill/--on-fill zijn de perzikvlakken van knoppen. */
+/* Huisstijl Groei Sterker, gelijk aan groei-sterker.nl: perzik achtergrond (#ffdecc), menu #ffd0b6 met rand #f9b18a,
+   zwarte tekst en gele/roze markeerstrepen onder koppen. Altijd licht, net als de website.
+   --accent is donker perzikbruin voor tekst en randen; --fill/--on-fill zijn de perzikvlakken van knoppen. */
 :root{
-  --bg:#fbf9ed; --surface:#ffffff; --ink:#323432; --muted:#6b645c; --line:#eadfd3;
-  --accent:#a94f22; --accent-soft:#ffe9dc; --fill:#f9b18a; --on-fill:#323432; --head:#ffd0b6; --head-line:#f9b18a;
+  --bg:#ffdecc; --surface:#ffffff; --ink:#1f1f1f; --muted:#5c524b; --line:#f6cdb4;
+  --accent:#8f4119; --accent-soft:#ffe9dc; --fill:#f9b18a; --on-fill:#000000; --head:#ffd0b6; --head-line:#f9b18a;
+  --mark-yellow:rgb(255 200 91 / .6); --mark-pink:rgb(250 157 183 / .55);
   --warn:#9a6200; --warn-soft:#fdf0d8; --ok:#2e7d4f; --danger:#b3362f; --danger-soft:#f8e1df;
   --c-mob:#2f6fb0; --c-stab:#1a7f7a; --c-kracht:#b4552a; --c-cond:#7a4bb0;
   --display:"Cal Sans",system-ui,sans-serif; --body:"Special Gothic",system-ui,sans-serif; --mono:"JetBrains Mono",ui-monospace,monospace;
+  color-scheme:light;
 }
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
-  --bg:#1f1b18; --surface:#2a2420; --ink:#f3ece6; --muted:#b8aca2; --line:#43392f;
-  --accent:#f9b18a; --accent-soft:#4a2f20; --fill:#f9b18a; --on-fill:#2a1d15; --head:#2a2420; --head-line:#4a2f20;
-  --warn:#f0b35a; --warn-soft:#3d2b12; --ok:#6bcf93; --danger:#f08a82; --danger-soft:#3b1d1b;
-  --c-mob:#7fb2ea; --c-stab:#5fcfc8; --c-kracht:#f59a6b; --c-cond:#b897ea; color-scheme:dark}}
-:root[data-theme="dark"]{
-  --bg:#1f1b18; --surface:#2a2420; --ink:#f3ece6; --muted:#b8aca2; --line:#43392f;
-  --accent:#f9b18a; --accent-soft:#4a2f20; --fill:#f9b18a; --on-fill:#2a1d15; --head:#2a2420; --head-line:#4a2f20;
-  --warn:#f0b35a; --warn-soft:#3d2b12; --ok:#6bcf93; --danger:#f08a82; --danger-soft:#3b1d1b;
-  --c-mob:#7fb2ea; --c-stab:#5fcfc8; --c-kracht:#f59a6b; --c-cond:#b897ea; color-scheme:dark}
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--ink);font:16px/1.5 var(--body);margin:0}
 body.dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
 .wrap{max-width:1180px;margin:0 auto;padding-inline:16px;padding-block:0 96px}
-header{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--head);border-bottom:2px solid var(--head-line)}
-.bar{max-width:1180px;margin:0 auto;padding:10px 16px;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+/* Menu als afgeronde perzik balk, zoals op de website */
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bg);padding:12px 16px 8px}
+.bar{max-width:1180px;margin:0 auto;padding:8px 10px 8px 24px;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--head);border:2px solid var(--head-line);border-radius:40px}
 .brand{font:400 1.3rem var(--display);display:flex;align-items:center;gap:12px}
 .brand .logo{height:52px;width:auto;display:block}
-@media(max-width:480px){.brand .logo{height:44px}}
+@media(max-width:480px){.brand .logo{height:44px}.bar{border-radius:24px;padding-left:16px}}
 .brand span{padding-left:12px;border-left:2px solid var(--head-line)}
-/* Het logo heeft zwarte letters: in donkere modus op een crème plaatje */
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .brand .logo{background:#fbf9ed;border-radius:10px;padding:3px 6px}}
-:root[data-theme="dark"] .brand .logo{background:#fbf9ed;border-radius:10px;padding:3px 6px}
 .seg{display:inline-flex;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:3px}
 .seg button{border:0;background:none;color:var(--muted);font:600 .9rem var(--body);padding:7px 16px;border-radius:999px;cursor:pointer}
 .seg button[aria-pressed="true"]{background:var(--fill);color:var(--on-fill)}
 h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0}
-h1{font-size:1.7rem;font-weight:400}
+h1{font-size:1.9rem;font-weight:400;width:fit-content;max-width:100%;padding:0 .15em;margin-left:-.15em;background:linear-gradient(var(--mark-yellow),var(--mark-yellow)) 0 75%/100% .42em no-repeat}
 h2{font-size:1.2rem;font-weight:400}
 h3{font-size:1.02rem;font-weight:400}
 .lede{color:var(--muted);margin:4px 0 0}
