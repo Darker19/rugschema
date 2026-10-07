@@ -362,5 +362,6 @@ document.addEventListener('pointercancel',()=>endDrag(true));
 
 $('#v-ther').onclick=()=>{view='ther';render()};
 $('#v-cli').onclick=()=>{view='cli';sheet=null;editSchema=null;render()};
+$('#to-top').onclick=()=>scrollTo({top:0,behavior:matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth'});
 allSchemas().forEach(sortItems);
 render();
