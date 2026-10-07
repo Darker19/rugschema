@@ -178,6 +178,13 @@ function sheetHtml(){
 }
 
 /* ---------- Cliënt ---------- */
+/* Stopwatch: telt op, blijft doorlopen als het scherm opnieuw wordt opgebouwd */
+const sw={start:0,acc:0,run:false,h:null};
+const swMs=()=>sw.acc+(sw.run?Date.now()-sw.start:0);
+function swFmt(ms){const m=Math.floor(ms/60000),s=Math.floor(ms/1000)%60;return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`}
+function stopwatch(){return `<div class="stopwatch"><div><div class="label">Stopwatch</div><div class="sw-time num" id="sw-time">${swFmt(swMs())}</div></div>
+  <div class="sw-btns"><button class="btn big" data-act="sw-toggle">${sw.run?'❚❚ Pauze':swMs()?'▶ Verder':'▶ Start'}</button><button class="btn ghost big" data-act="sw-reset" ${swMs()?'':'disabled'}>Reset</button></div></div>`}
+function swTick(){const el=$('#sw-time');if(el)el.innerHTML=swFmt(swMs())}
 const HARD=[['😄','Heel makkelijk'],['🙂','Makkelijk'],['😐','Gaat wel'],['😣','Zwaar'],['😫','Heel zwaar']];
 function rateBlock(cid,eid){
   const r=S.ratings.find(x=>x.c===cid&&x.e===eid&&x.d===today())||{};
@@ -203,6 +210,7 @@ function client(){
     <div class="reminder"><img src="img/olifant.png" alt="" width="444" height="512"><div><span class="label">Reminder</span>
       <strong>Denk aan je houding!</strong>
       <p>Rechte rug en ontspannen schouders, ook bij zitten, bukken en tillen. Vink een oefening af en vertel hoe het ging.</p></div></div>
+    ${stopwatch()}
     <div><div style="display:flex;justify-content:space-between" class="label"><span>Voortgang vandaag</span><span class="num">${n}/${tot}</span></div>
       <div class="progress" style="margin-top:6px"><i style="width:${tot?n/tot*100:0}%"></i></div></div>
     <div class="list">${items.map(it=>{const e=card(it.card);return `
@@ -212,7 +220,6 @@ function client(){
           <div class="dose"><div><b>${it.sets}</b><small>sets</small></div><div><b>${it.reps}</b><small>herhalingen</small></div>
             ${it.hold?`<div><b>${it.hold}s</b><small>vasthouden</small></div>`:''}${it.rest?`<div><b>${it.rest}s</b><small>rust</small></div>`:''}</div>
           ${e.note?`<p class="note">${esc(e.note)}</p>`:''}
-          ${it.hold&&!d[e.id]?`<div class="timer"><button class="btn ghost small" data-act="timer" data-s="${it.hold}" data-id="${e.id}">Start ${it.hold}s</button><span class="t num" id="t-${e.id}"></span></div>`:''}
           ${d[e.id]?rateBlock(c.id,e.id):''}
         </div></article>`}).join('')}</div>
     ${n===tot&&tot?`<div class="panel" style="text-align:center"><div style="font-size:2rem">🏆</div><strong style="color:var(--ok)">Alles gedaan voor vandaag. Super gedaan!</strong></div>`:''}
@@ -266,11 +273,11 @@ document.addEventListener('click',ev=>{
     s.items.push(structuredClone(bi));save();render()}
   if(a==='dose'){const k={s:b.dataset.s,i:+b.dataset.i};editItem=(editItem&&editItem.s===k.s&&editItem.i===k.i)?null:k;render()}
   if(a==='remove-item'){const undo=snapshot();schemaById(b.dataset.s).items.splice(+b.dataset.i,1);editItem=null;save();render();toast('Uit schema gehaald',undo)}
+  if(a==='sw-toggle'){if(sw.run){sw.acc+=Date.now()-sw.start;sw.run=false;clearInterval(sw.h)}else{sw.start=Date.now();sw.run=true;sw.h=setInterval(swTick,100)}render()}
+  if(a==='sw-reset'){clearInterval(sw.h);Object.assign(sw,{start:0,acc:0,run:false});render()}
   if(a==='toggle'){const k=b.dataset.key;done[k]=done[k]||{};done[k][b.dataset.id]=!done[k][b.dataset.id];save();render()}
   if(a==='rate'){const {c,e,k,v}=b.dataset;let r=S.ratings.find(x=>x.c===c&&x.e===e&&x.d===today());
     if(!r){r={c,e,d:today()};S.ratings.push(r)} r[k]=+v;save();render();if(r.hard&&r.fun)toast('Bedankt voor je mening!')}
-  if(a==='timer'){let t=+b.dataset.s;const out=$('#t-'+b.dataset.id);clearInterval(b._h);out.textContent=t;
-    b._h=setInterval(()=>{t--;out.textContent=t>0?t:'✓';if(t<=0)clearInterval(b._h)},1000)}
 });
 function deleteCard(id){S.cards=S.cards.filter(c=>c.id!==id);allSchemas().forEach(s=>s.items=s.items.filter(i=>i.card!==id))}
 document.addEventListener('change',ev=>{
