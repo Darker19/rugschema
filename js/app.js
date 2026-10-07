@@ -5,59 +5,15 @@ const catRank=cid=>{const c=S.cards.find(x=>x.id===cid);return c?CATS.indexOf(c.
 // vaste volgorde: mobiliteit → kracht → stabiliteit → conditie; binnen een categorie blijft de eigen volgorde
 const sortItems=sc=>sc.items.sort((a,b)=>catRank(a.card)-catRank(b.card));
 let catFilter='Alle';
-let folded={'open-c1':true}; try{folded=JSON.parse(localStorage.getItem('rugschema-folded2'))||folded}catch(e){}
+let folded=Opslag.laadIngeklapt()||{'open-c1':true};
 const isF=k=>!!folded[k];
 const CHEV=`<svg class="chev" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 6l3 3 3-3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 const foldHead=(k,inner)=>`<button class="fold" data-act="fold" data-k="${k}" aria-expanded="${!isF(k)}">${CHEV}${inner}</button>`;
-const seed={
-  cards:[
-    {id:'e1',name:'Bekkenkantelen in rugligging',cat:'Mobiliteit',sets:3,reps:10,hold:5,rest:30,note:'Rustig ademen, onderrug zacht tegen de mat.'},
-    {id:'e2',name:'Cat-camel (kleine uitslag)',cat:'Mobiliteit',sets:2,reps:8,hold:0,rest:30,note:'Alleen in pijnvrij bereik bewegen.'},
-    {id:'e3',name:'Wandelen',cat:'Conditie',sets:1,reps:1,hold:0,rest:0,note:'15 minuten in eigen tempo.'},
-    {id:'e4',name:'Bird-dog',cat:'Stabiliteit',sets:3,reps:8,hold:8,rest:45,note:'Bekken stil houden, niet doorzakken.'},
-    {id:'e5',name:'Dead bug',cat:'Stabiliteit',sets:3,reps:10,hold:0,rest:45,note:'Onderrug blijft op de grond.'},
-    {id:'e6',name:'Glute bridge',cat:'Kracht',sets:3,reps:12,hold:3,rest:45,note:'Billen aanspannen bovenin.'},
-    {id:'e7',name:'McGill curl-up',cat:'Stabiliteit',sets:3,reps:6,hold:10,rest:30,note:'Eén knie gebogen, handen onder de onderrug.'},
-    {id:'e8',name:'Hip hinge met stok',cat:'Kracht',sets:3,reps:10,hold:0,rest:60,note:'Stok raakt achterhoofd, rug en stuit.'},
-    {id:'e9',name:'Zijwaartse plank',cat:'Stabiliteit',sets:3,reps:2,hold:20,rest:45,note:'Per kant.'},
-    {id:'e10',name:'Goblet squat',cat:'Kracht',sets:3,reps:10,hold:0,rest:60,note:'Start met een lichte kettlebell.'},
-    {id:'e11',name:'Clamshell',cat:'Kracht',sets:3,reps:12,hold:0,rest:30,note:'Voeten tegen elkaar, bovenste knie open.'},
-    {id:'e12',name:'Fietsen op hometrainer',cat:'Conditie',sets:1,reps:1,hold:0,rest:0,note:'10 minuten, rechtop zitten.'},
-    {id:'e13',name:'Balans op één been',cat:'Stabiliteit',sets:3,reps:2,hold:30,rest:20,note:'Per been. Ogen open, daarna dicht.'}
-  ],
-  schemas:[
-    {id:'s1',name:'Fase 1 · Ontlasten',maxFlex:20,days:5,weeks:2,items:['e1','e2','e3']},
-    {id:'s2',name:'Fase 2 · Opbouw stabiliteit',maxFlex:45,days:4,weeks:4,items:['e4','e5','e6','e7']},
-    {id:'s3',name:'Fase 3 · Belasten',maxFlex:90,days:3,weeks:6,items:['e8','e9','e10']}
-  ],
-  clients:[
-    {id:'c1',name:'Sanne de Vries',age:14,schema:'s2',custom:{maxFlex:40,removed:['e7'],extra:[{card:'e11',sets:2,reps:10,hold:0,rest:30}],tweak:{e4:{hold:5},e5:{reps:6}}}},
-    {id:'c2',name:'Mehmet Yilmaz',age:11,schema:'s1'},
-    {id:'c3',name:'Joost Bakker',age:16,schema:'s3'},
-    {id:'c4',name:'Lotte Jansen',age:9,schema:''}
-  ],
-  ratings:[]
-};
-// schema-items krijgen standaard de dosering van de kaart
-seed.schemas.forEach(s=>s.items=s.items.map(id=>{const c=seed.cards.find(x=>x.id===id);return {card:id,sets:c.sets,reps:c.reps,hold:c.hold,rest:c.rest}}));
-// voorbeeld: persoonlijk schema voor Sanne, afgeleid van Fase 2
-seed.clients.forEach(c=>{if(!c.custom)return;const b=seed.schemas.find(s=>s.id===c.schema),x=c.custom;
-  c.custom={id:'p-'+c.id,client:c.id,base:b.id,name:b.name,maxFlex:x.maxFlex,days:b.days,weeks:b.weeks,
-    items:[...b.items.filter(i=>!x.removed.includes(i.card)).map(i=>({...i,...(x.tweak[i.card]||{})})),...x.extra]}});
-(()=>{const day=n=>new Date(Date.now()-n*864e5).toISOString().slice(0,10);
-  const r=(c,e,d,hard,fun)=>seed.ratings.push({c,e,d:day(d),hard,fun});
-  r('c1','e4',1,2,4);r('c1','e5',1,4,2);r('c1','e6',1,2,5);r('c1','e7',1,5,1);
-  r('c1','e4',3,2,5);r('c1','e5',3,4,2);r('c1','e7',3,4,2);r('c1','e6',3,1,4);
-  r('c2','e1',1,1,3);r('c2','e2',1,2,4);r('c2','e3',1,1,5);r('c2','e1',2,2,3);
-  r('c3','e8',1,3,3);r('c3','e9',1,4,4);r('c3','e10',1,3,5);})();
-
-const KEY='rugschema4';
-let S; try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}
-if(!S||!S.cards)S=structuredClone(seed);
-let done={}; try{done=JSON.parse(localStorage.getItem(KEY+'-done'))||{}}catch(e){}
+let S=Opslag.laadGegevens()||structuredClone(seed);
+let done=Opslag.laadAfgevinkt();
 let view='ther', activeClient='c1', fbClient='c1', editSchema=null, editItem=null, sheet=null;
-const saveFold=()=>{try{localStorage.setItem('rugschema-folded2',JSON.stringify(folded))}catch(e){}};
-const save=()=>{allSchemas().forEach(sortItems);try{localStorage.setItem(KEY,JSON.stringify(S));localStorage.setItem(KEY+'-done',JSON.stringify(done))}catch(e){}};
+const saveFold=()=>Opslag.bewaarIngeklapt(folded);
+const save=()=>{allSchemas().forEach(sortItems);Opslag.bewaarGegevens(S);Opslag.bewaarAfgevinkt(done)};
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const initials=n=>n.split(' ').filter(Boolean).map(w=>w[0]).filter(c=>c===c.toUpperCase()).slice(0,2).join('');
@@ -135,8 +91,9 @@ function columnHtml(s){
   </section>`;
 }
 function therapist(){
-  return `<div style="margin-top:20px"><h1>Praktijkoverzicht</h1>
+  return `<div style="margin-top:20px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap"><div><h1>Praktijkoverzicht</h1>
     <p class="lede">Sleep oefenkaarten naar een schema. Sleep ze terug of naar de prullenbak om ze eruit te halen.</p></div>
+    <button class="btn danger small" data-act="reset-demo" style="flex:0 0 auto">Voorbeelddata herstellen</button></div>
   <section class="section">
     <div class="section-head"><div>${foldHead('lib','<h2>Kaartenbak</h2>')}<p class="lede" style="font-size:.92rem">${S.cards.length} oefeningen</p></div>
       <div class="filters" role="group" aria-label="Filter op categorie">${['Alle',...CATS].map(c=>{const n=c==='Alle'?S.cards.length:S.cards.filter(x=>x.cat===c).length;
@@ -298,6 +255,11 @@ document.addEventListener('click',ev=>{
     if(!b.dataset.confirm){b.dataset.confirm=1;b.textContent='Zeker weten?';return}
     const undo=snapshot();S.schemas=S.schemas.filter(x=>x.id!==b.dataset.id);S.clients.forEach(c=>{if(c.schema===b.dataset.id){c.schema='';c.custom=null}});
     editSchema=null;save();render();toast('Schema verwijderd',undo)}
+  if(a==='reset-demo'){
+    if(!b.dataset.confirm){b.dataset.confirm=1;b.textContent='Zeker weten? Klik nogmaals';return}
+    const vS=JSON.stringify(S),vD=JSON.stringify(done);
+    Opslag.wisAlles();S=structuredClone(seed);done={};sheet=null;editSchema=null;editItem=null;save();render();
+    toast('Voorbeelddata hersteld',()=>{S=JSON.parse(vS);done=JSON.parse(vD);save();render();toast('Hersteld')})}
   if(a==='fold'){folded[b.dataset.k]=!folded[b.dataset.k];saveFold();render();return}
   if(a==='fold-all'){const ids=b.dataset.ids.split(','),close=!ids.every(isF);ids.forEach(k=>folded[k]=close);saveFold();render();return}
   if(a==='filter'){catFilter=b.dataset.cat;render();return}
