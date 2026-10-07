@@ -6,6 +6,7 @@ Prototype van een oefenschema-app voor kinderfysiotherapie (rug).
 - `css/style.css`: opmaak
 - `js/app.js`: alle logica en schermen
 - `js/data.js`: voorbeelddata (alleen verzonnen namen)
+- `js/versie.js`: versienummer onderaan de pagina. Wordt bij elke commit automatisch bijgewerkt door `.git/hooks/pre-commit` (dat bestand staat niet in git; zet het terug als je de repo opnieuw kloont)
 - `js/opslag.js`: alle opslag op één plek. Nu localStorage in de browser; later vervang je alleen dit bestand door de echte database
 
 Met **Voorbeelddata herstellen** (rechtsboven in de therapeutweergave, twee keer klikken) zet je alles terug.

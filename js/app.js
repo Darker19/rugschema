@@ -390,5 +390,6 @@ document.addEventListener('pointercancel',()=>endDrag(true));
 $('#v-ther').onclick=()=>{view='ther';render()};
 $('#v-cli').onclick=()=>{view='cli';sheet=null;linkCard=null;editSchema=null;render()};
 $('#to-top').onclick=()=>scrollTo({top:0,behavior:matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth'});
+$('#versie').textContent=`RugSchema · versie ${VERSIE.nummer} · ${VERSIE.datum}`;
 allSchemas().forEach(sortItems);
 render();
