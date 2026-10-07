@@ -178,15 +178,6 @@ function sheetHtml(){
 }
 
 /* ---------- Cliënt ---------- */
-function gauge(deg){
-  const r=30, cx=36, cy=36;
-  const t=Math.min(deg,90)/90*Math.PI/2, x=cx+r*Math.sin(t), y=cy-r*Math.cos(t);
-  return `<svg width="72" height="44" viewBox="0 0 72 44" aria-hidden="true" style="flex:0 0 auto">
-    <path d="M36 6 A30 30 0 0 1 66 36" fill="none" stroke="var(--line)" stroke-width="6" stroke-linecap="round"/>
-    <path d="M36 6 A30 30 0 0 1 ${x.toFixed(1)} ${y.toFixed(1)}" fill="none" stroke="var(--warn)" stroke-width="6" stroke-linecap="round"/>
-    <line x1="36" y1="36" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="var(--ink)" stroke-width="2"/>
-    <circle cx="36" cy="36" r="3" fill="var(--ink)"/></svg>`;
-}
 const HARD=[['😄','Heel makkelijk'],['🙂','Makkelijk'],['😐','Gaat wel'],['😣','Zwaar'],['😫','Heel zwaar']];
 function rateBlock(cid,eid){
   const r=S.ratings.find(x=>x.c===cid&&x.e===eid&&x.d===today())||{};
@@ -209,8 +200,9 @@ function client(){
   return picker+`<div class="hero">
     <div><div class="label">Vandaag · ${new Date().toLocaleDateString('nl-NL',{weekday:'long',day:'numeric',month:'long'})}</div>
       <h1>Hoi ${first}! Dit zijn je oefeningen</h1><p class="lede">${esc(s.name)} · ${s.days}× per week · ${s.weeks} weken</p></div>
-    <div class="limit">${gauge(s.maxFlex)}<div><strong>Buig niet verder dan <span class="num">${s.maxFlex}°</span> voorover</strong>
-      <p>Blijf binnen deze grens, ook bij bukken, tillen en sporten. Vink een oefening af en vertel hoe het ging.</p></div></div>
+    <div class="reminder"><img src="img/olifant.png" alt="" width="444" height="512"><div><span class="label">Reminder</span>
+      <strong>Denk aan je houding!</strong>
+      <p>Rechte rug en ontspannen schouders, ook bij zitten, bukken en tillen. Vink een oefening af en vertel hoe het ging.</p></div></div>
     <div><div style="display:flex;justify-content:space-between" class="label"><span>Voortgang vandaag</span><span class="num">${n}/${tot}</span></div>
       <div class="progress" style="margin-top:6px"><i style="width:${tot?n/tot*100:0}%"></i></div></div>
     <div class="list">${items.map(it=>{const e=card(it.card);return `

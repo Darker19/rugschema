@@ -40,7 +40,7 @@ header{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;padding:12px 
 @media(max-width:560px){.seg button{padding:6px 11px;font-size:.85rem}}
 .seg button[aria-pressed="true"]{background:var(--fill);color:var(--on-fill)}
 h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0}
-h1{font-size:1.9rem;font-weight:400;width:fit-content;max-width:100%;padding:0 .15em;margin-left:-.15em;background:linear-gradient(var(--mark-yellow),var(--mark-yellow)) 0 75%/100% .42em no-repeat}
+h1{font-size:1.9rem;font-weight:400;text-decoration:underline var(--mark-yellow) .42em;text-underline-offset:-.3em;text-decoration-skip-ink:none}
 h2{font-size:1.2rem;font-weight:400}
 h3{font-size:1.02rem;font-weight:400}
 .lede{color:var(--muted);margin:4px 0 0}
@@ -125,8 +125,11 @@ textarea{resize:vertical;min-height:60px}
 
 /* Cliëntweergave */
 .hero{display:flex;flex-direction:column;gap:14px;margin-top:20px;max-width:720px}
-.limit{display:flex;gap:16px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px}
-.limit p{margin:2px 0 0;color:var(--muted)}
+.reminder{display:flex;gap:16px;align-items:center;background:var(--head);border:2px solid var(--head-line);border-radius:18px;padding:14px 18px}
+.reminder img{width:56px;height:auto;flex:0 0 auto}
+.reminder .label{color:var(--accent)}
+.reminder strong{display:block;font:400 1.35rem/1.2 var(--display);margin:2px 0 4px}
+.reminder p{margin:0;color:var(--ink)}
 .progress{height:8px;border-radius:99px;background:var(--line);overflow:hidden}
 .progress i{display:block;height:100%;background:var(--accent);transition:width .3s}
 .list{display:flex;flex-direction:column;gap:10px}
