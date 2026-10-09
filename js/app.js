@@ -9,7 +9,7 @@ const catRank=cid=>{const c=S.cards.find(x=>x.id===cid);return c?S.cats.findInde
 const sortItems=sc=>sc.items.sort((a,b)=>catRank(a.card)-catRank(b.card));
 let catFilter='Alle';
 // Zoeken en pagina's (kaartenbak 20 kaarten, schema's 5 per pagina); cliënten: zoeken plus filters op schema en indicatie
-const zoek={lib:'',sch:'',cli:''}, pagina={lib:0,sch:0}, PER={lib:20,sch:5};
+const zoek={lib:'',sch:'',cli:'',ind:''}, pagina={lib:0,sch:0}, PER={lib:20,sch:5};
 let cliSchema='', cliInd='';
 const zoekNorm=v=>String(v??'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
 const past=(teksten,q)=>!q.trim()||teksten.some(t=>zoekNorm(t).includes(zoekNorm(q.trim())));
@@ -19,18 +19,21 @@ function pager(k,totaal){const n=Math.ceil(totaal/PER[k]),p=pagina[k];if(n<=1)re
     <span class="num">Pagina ${p+1} van ${n}</span><button class="btn ghost small" data-act="pagina" data-k="${k}" data-p="${p+1}" ${p>=n-1?'disabled':''}>Volgende ›</button></nav>`}
 const zoekVeld=(k,tekst)=>`<input type="search" class="zoek" id="zoek-${k}" data-zoek="${k}" value="${esc(zoek[k])}" placeholder="${tekst}" aria-label="${tekst}">`;
 const telTekst=(n,tot,een,meer)=>n===tot?`${tot} ${tot===1?een:meer}`:`${n} van ${tot} ${tot===1?een:meer}`;
-// alle indicaties, per subcategorie (zie js/indicaties.js)
-const indicaties=()=>{registreerIndicaties();return indPerGroep().flatMap(b=>b.items.map(i=>i.name))};
-// Indicatie ↔ schema: een cliënt met een indicatie die bij een schema hoort, krijgt dat schema automatisch (c.viaIndicatie).
+// Indicatie ↔ schema (indicaties en subcategorieën: zie js/indicaties.js): een cliënt met een indicatie die bij een schema hoort,
+// krijgt dat schema automatisch (c.viaIndicatie). Een schema voor indicatie › subcategorie gaat vóór een schema voor alleen de indicatie.
 // Elke cliënt zonder schema krijgt het schema van zijn indicatie; een zelf gekozen schema blijft staan.
 // Hoort de indicatie niet meer bij een schema, dan wordt een automatische koppeling losgemaakt.
 const indNorm=v=>String(v||'').trim().toLowerCase();
-const schemaVoorIndicatie=ind=>indNorm(ind)?S.schemas.find(x=>indNorm(x.indicatie)===indNorm(ind)):null;
+function schemaVoorIndicatie(c){
+  if(!indNorm(c.indicatie))return null;
+  const zelfde=x=>indNorm(x.indicatie)===indNorm(c.indicatie);
+  return (c.subcategorie&&S.schemas.find(x=>zelfde(x)&&indNorm(x.subcategorie)===indNorm(c.subcategorie)))||S.schemas.find(x=>zelfde(x)&&!x.subcategorie)||null;
+}
 function koppelIndicaties(){
   registreerIndicaties();
   let plus=0,min=0;
   for(const c of S.clients){
-    const m=schemaVoorIndicatie(c.indicatie);
+    const m=schemaVoorIndicatie(c);
     if(c.viaIndicatie){
       if(!m){c.schema='';c.custom=null;c.viaIndicatie=false;min++}
       else if(c.schema!==m.id){c.schema=m.id;c.custom=null;plus++}
@@ -164,8 +167,8 @@ function columnHtml(s){
   return `<section class="col ${s.client?'personal':''}" id="col-${s.id}" data-drop="schema" data-schema="${s.id}">
     ${editing?`<div class="row">
         ${s.client?`<input id="sn-${s.id}" type="hidden" value="${esc(s.name)}">`:`<label class="field" style="flex:1 1 100%"><span>Naam</span><input id="sn-${s.id}" value="${esc(s.name)}"></label>
-        <label class="field" style="flex:1 1 100%"><span>Indicatie (optioneel)</span><input id="si-${s.id}" list="ind-lijst" maxlength="60" value="${esc(s.indicatie||'')}" placeholder="bijv. Scoliose">
-          <small class="hint">Cliënten met deze indicatie en nog geen schema krijgen dit schema automatisch.</small></label>`}
+        <div class="row" style="flex:1 1 100%">${indKeuzes(s,'si-'+s.id,'ss-'+s.id,'sch-ind','')}</div>
+        <small class="hint" style="flex:1 1 100%">Optioneel. Cliënten met deze indicatie (en subcategorie) die nog geen schema hebben, krijgen dit schema automatisch.</small>`}
         <label class="field"><span>Per week</span><input id="sd-${s.id}" type="number" min="1" max="7" value="${s.days}"></label>
         <label class="field"><span>Weken</span><input id="sw-${s.id}" type="number" min="1" max="52" value="${s.weeks}"></label></div>
       <div class="row" style="justify-content:space-between">${s.client?`<button class="btn danger small" style="flex:0 0 auto" data-act="reset-custom" data-id="${s.client}">Terug naar basisschema</button>`:`<button class="btn danger small" style="flex:0 0 auto" data-act="del-schema" data-id="${s.id}">Schema verwijderen</button>`}
@@ -173,7 +176,7 @@ function columnHtml(s){
           <button class="btn ghost small" data-act="sch-neer" data-id="${s.id}" ${S.schemas.at(-1)?.id===s.id?'disabled':''} title="Later in de volgorde">Later →</button>`}
         <button class="btn small" data-act="save-schema" data-id="${s.id}">Klaar</button></span></div>`
     :`<div class="col-head" ${s.client?'':`data-drag="schema" data-schema="${s.id}"`}>${s.client?'':GRIP}<div style="min-width:0;flex:1">${owner?`<h3>Persoonlijk schema van ${esc(owner.name.split(' ')[0])}</h3>`:foldHead('col-'+s.id,`<h3>${esc(s.name)}</h3>`)}
-        <div class="chips" style="margin-top:6px">${s.indicatie?`<span class="indicatie" title="Indicatie: cliënten krijgen dit schema automatisch">${esc(s.indicatie)}</span>`:''}<span class="chip">${s.days}×/week</span><span class="chip">${s.weeks} wkn</span></div></div>
+        <div class="chips" style="margin-top:6px">${s.indicatie?`<span class="indicatie" title="Indicatie: cliënten krijgen dit schema automatisch">${esc(indLabel(s))}</span>`:''}<span class="chip">${s.days}×/week</span><span class="chip">${s.weeks} wkn</span></div></div>
         <button class="icon-btn" data-act="edit-schema" data-id="${s.id}" aria-label="Schema-instellingen" title="Instellingen">⋯</button></div>`}
     ${isF('col-'+s.id)&&!editing?`<button class="folded-sum" data-act="fold" data-k="col-${s.id}">
         <span class="dots">${s.items.map(it=>{const c=card(it.card);return c?`<i style="background:${catColor(c.cat)}"></i>`:''}).join('')}</span>
@@ -189,10 +192,11 @@ function columnHtml(s){
 function therapist(){
   const kaarten=cats().flatMap(cat=>S.cards.filter(c=>c.cat===cat)).filter(c=>(catFilter==='Alle'||c.cat===catFilter)&&past([c.name,c.note,c.cat],zoek.lib));
   const schemas=S.schemas.filter(x=>past([x.name,...x.items.map(i=>card(i.card)?.name)],zoek.sch));
-  const clienten=S.clients.filter(c=>past([c.name,c.indicatie,groepVan(c.indicatie)],zoek.cli)&&(!cliSchema||(cliSchema==='-'?!c.schema:c.schema===cliSchema))
-    &&(!cliInd||(cliInd.startsWith('g:')?groepVan(c.indicatie)===cliInd.slice(2):indNorm(c.indicatie)===indNorm(cliInd))));
-  return `<datalist id="ind-lijst">${indicaties().map(i=>`<option value="${esc(i)}">`).join('')}</datalist>
-  <div style="margin-top:20px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap"><div><h1>Praktijkoverzicht</h1>
+  registreerIndicaties();
+  const [fInd,fSub]=cliInd.split('|');
+  const clienten=S.clients.filter(c=>past([c.name,c.indicatie,c.subcategorie],zoek.cli)&&(!cliSchema||(cliSchema==='-'?!c.schema:c.schema===cliSchema))
+    &&(!fInd||indNorm(c.indicatie)===indNorm(fInd)&&(fSub==null||indNorm(c.subcategorie)===indNorm(fSub))));
+  return `<div style="margin-top:20px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap"><div><h1>Praktijkoverzicht</h1>
     <p class="lede">Sleep oefenkaarten naar een schema, of klik op een kaart om hem te koppelen. Sleep ze terug of naar de prullenbak om ze eruit te halen.</p></div>
     ${modus==='demo'?'<button class="btn danger small" data-act="reset-demo" style="flex:0 0 auto">Voorbeelddata herstellen</button>':''}</div>
   <section class="section">
@@ -226,16 +230,16 @@ function therapist(){
         <select id="cli-schema" aria-label="Filter op schema"><option value="">Alle schema's</option><option value="-" ${cliSchema==='-'?'selected':''}>Geen schema</option>
           ${S.schemas.map(x=>`<option value="${x.id}" ${cliSchema===x.id?'selected':''}>${esc(x.name)}</option>`).join('')}</select>
         <select id="cli-ind" aria-label="Filter op indicatie"><option value="">Alle indicaties</option>
-          ${(registreerIndicaties(),indPerGroep()).filter(b=>b.items.length||b.groep).map(b=>`<optgroup label="${b.groep?esc(b.groep):'Zonder subcategorie'}">
-            ${b.groep?`<option value="g:${esc(b.groep)}" ${cliInd==='g:'+b.groep?'selected':''}>Alle in ${esc(b.groep)}</option>`:''}
-            ${b.items.map(i=>`<option value="${esc(i.name)}" ${cliInd===i.name?'selected':''}>${esc(i.name)}</option>`).join('')}</optgroup>`).join('')}</select>
+          ${S.indLijst.map(t=>t.subs.length?`<optgroup label="${esc(t.name)}"><option value="${esc(t.name)}" ${cliInd===t.name?'selected':''}>${esc(t.name)} (alles)</option>
+            ${t.subs.map(x=>{const v=t.name+'|'+x;return `<option value="${esc(v)}" ${cliInd===v?'selected':''}>${esc(t.name)} › ${esc(x)}</option>`}).join('')}</optgroup>`
+            :`<option value="${esc(t.name)}" ${cliInd===t.name?'selected':''}>${esc(t.name)}</option>`).join('')}</select>
         <button class="btn ghost small" data-act="ind-open" style="flex:0 0 auto">✎ Indicaties</button></div>
       <div class="clients">${clienten.length<S.clients.length?`<p class="lede" style="font-size:.92rem;margin:0">${telTekst(clienten.length,S.clients.length,'cliënt','cliënten')}</p>`:''}
       ${clienten.map(clientCard).join('')||(S.clients.length?'<p class="empty">Geen cliënten gevonden.</p>':'')}
       <form id="add-client" class="row add-client">
         <input id="new-client" placeholder="Naam nieuwe cliënt" aria-label="Naam nieuwe cliënt" style="flex:2 1 160px">
         <input id="new-age" type="number" min="0" max="17" placeholder="Leeftijd" aria-label="Leeftijd" style="flex:1 1 80px">
-        <input id="new-ind" list="ind-lijst" placeholder="Indicatie" aria-label="Indicatie" maxlength="60" style="flex:2 1 140px">
+        <select id="new-ind" aria-label="Indicatie" style="flex:2 1 140px;width:auto"><option value="">Indicatie (optioneel)</option>${S.indLijst.map(t=>`<option value="${esc(t.name)}">${esc(t.name)}</option>`).join('')}</select>
         <button class="btn" style="flex:0 0 auto">Cliënt toevoegen</button></form>
       <p class="demo" style="margin:0">De namen, oefeningen en beoordelingen zijn voorbeelden.</p></div>`}
   </section>
@@ -248,11 +252,12 @@ function clientCard(c){
   return `<article class="cl ${open?'open':''}" id="cl-${c.id}">
     <div class="cl-head">
       <button class="fold" data-act="open-client" data-id="${c.id}" aria-expanded="${open}">${CHEV}<span class="avatar">${initials(c.name)}</span>
-        <span><strong>${esc(c.name)}</strong>${c.age?` <span class="num" style="color:var(--muted);font-size:.85rem">${c.age} jr</span>`:''}${c.indicatie?`<span class="indicatie">${esc(indLabel(c.indicatie))}</span>`:''}</span></button>
+        <span><strong>${esc(c.name)}</strong>${c.age?` <span class="num" style="color:var(--muted);font-size:.85rem">${c.age} jr</span>`:''}${c.indicatie?`<span class="indicatie">${esc(indLabel(c))}</span>`:''}</span></button>
       <div class="cl-status">${status}${c.custom&&base?`<span class="based">op basis van ${esc(base.name)}</span>`:''}${c.viaIndicatie&&base?'<span class="based">automatisch via indicatie</span>':''}</div>
     </div>
     ${open?`<div class="cl-body">
-      <label class="field" style="max-width:360px"><span>Indicatie</span><input id="ind-${c.id}" list="ind-lijst" value="${esc(c.indicatie||'')}" maxlength="60" data-act="indicatie" data-id="${c.id}" placeholder="bijv. Scoliose"></label>
+      <div class="row ind-velden">${indKeuzes(c,'ind-'+c.id,'sub-'+c.id,'cl-ind','cl-sub',`data-id="${c.id}"`)}
+        <button class="icon-btn" data-act="ind-open" title="Indicaties en subcategorieën beheren" aria-label="Indicaties beheren" style="align-self:flex-end;margin-bottom:4px">✎</button></div>
       <label class="field" style="max-width:360px"><span>Basisschema</span>
         <select id="sel-${c.id}" data-act="assign" data-id="${c.id}">
           <option value="">Geen schema</option>${S.schemas.map(x=>`<option value="${x.id}" ${c.schema===x.id?'selected':''}>${esc(x.name)}</option>`).join('')}</select></label>
@@ -382,9 +387,10 @@ function addToSchema(sid,cid,at){
 function syncSchemaForm(id){const s=schemaById(id);if(!s||!$('#sn-'+id))return '';
   s.name=$('#sn-'+id).value.trim()||s.name;s.days=+$('#sd-'+id).value||1;s.weeks=+$('#sw-'+id).value||1;
   const veld=$('#si-'+id);if(!veld)return '';
-  const ind=veld.value.trim().replace(/\s+/g,' '), ander=ind&&S.schemas.find(x=>x.id!==id&&indNorm(x.indicatie)===indNorm(ind));
-  if(ander)return `Indicatie "${ind}" hoort al bij ${ander.name}. Elke indicatie kan maar bij één schema horen.`;
-  s.indicatie=ind;return ''}
+  const ind=veld.value, sub=ind?$('#ss-'+id).value:'';
+  const ander=ind&&S.schemas.find(x=>x.id!==id&&indNorm(x.indicatie)===indNorm(ind)&&indNorm(x.subcategorie)===indNorm(sub));
+  if(ander)return `${indLabel({indicatie:ind,subcategorie:sub})} hoort al bij ${ander.name}. Elke indicatie (en subcategorie) kan maar bij één schema horen.`;
+  s.indicatie=ind;s.subcategorie=sub;return ''}
 
 document.addEventListener('click',ev=>{
   const b=ev.target.closest('[data-act]'); if(!b||b.tagName==='SELECT'||b.tagName==='FORM')return;
@@ -408,7 +414,7 @@ document.addEventListener('click',ev=>{
     if(j<0||j>=S.schemas.length)return;syncSchemaForm(id);[S.schemas[i],S.schemas[j]]=[S.schemas[j],S.schemas[i]];
     if(!zoek.sch.trim())pagina.sch=Math.floor(j/PER.sch);save();render();$(`[data-act="${a}"][data-id="${id}"]`)?.focus();return}
   if(a==='save-schema'){const undo=snapshot(), f=syncSchemaForm(b.dataset.id);
-    if(f){toast(f);$('#si-'+b.dataset.id)?.select();return}
+    if(f){toast(f);$('#si-'+b.dataset.id)?.focus();return}
     const k=koppelIndicaties();editSchema=null;save();render();toast(['Schema opgeslagen',koppelTekst(k)].filter(Boolean).join(' · '),k.plus||k.min?undo:null)}
   if(a==='del-schema'){
     if(!b.dataset.confirm){b.dataset.confirm=1;b.textContent='Zeker weten?';return}
@@ -424,7 +430,7 @@ document.addEventListener('click',ev=>{
   if(a==='filter'){catFilter=b.dataset.cat;pagina.lib=0;render();return}
   if(a==='pagina'){const k=b.dataset.k;pagina[k]=+b.dataset.p;render();document.getElementById(k==='lib'?'zoek-lib':'zoek-sch')?.scrollIntoView({block:'center'});return}
   if(a==='personalize'){const c=S.clients.find(x=>x.id===b.dataset.id),b0=schemaById(c.schema);
-    c.custom={...structuredClone(b0),id:'p-'+c.id,client:c.id,base:b0.id};delete c.custom.indicatie;save();render();
+    c.custom={...structuredClone(b0),id:'p-'+c.id,client:c.id,base:b0.id};delete c.custom.indicatie;delete c.custom.subcategorie;save();render();
     folded['open-'+c.id]=true;saveFold();render();$('#cl-'+c.id)?.scrollIntoView({behavior:'smooth',block:'start'});toast('Persoonlijk schema gemaakt')}
   if(a==='open-client'){folded['open-'+b.dataset.id]=!folded['open-'+b.dataset.id];saveFold();render();return}
   if(a==='open-all'){const all=S.clients.every(c=>isOpen(c.id));S.clients.forEach(c=>folded['open-'+c.id]=!all);saveFold();render();return}
@@ -452,8 +458,11 @@ document.addEventListener('change',ev=>{
     toast(had?'Schema gekoppeld, persoonlijke aanpassingen vervallen':'Schema gekoppeld',had?undo:null)}
   if(a==='fb-pick'){fbClient=el.value;render()}
   if(a==='pick'){activeClient=el.value;render()}
-  if(a==='indicatie'){const c=S.clients.find(x=>x.id===el.dataset.id),undo=snapshot();c.indicatie=el.value.trim();
-    const k=koppelIndicaties();save();render();toast(['Indicatie opgeslagen',koppelTekst(k)].filter(Boolean).join(' · '),k.plus||k.min?undo:null)}
+  if(a==='cl-ind'||a==='cl-sub'){const c=S.clients.find(x=>x.id===el.dataset.id),undo=snapshot();
+    if(a==='cl-ind'){c.indicatie=el.value;c.subcategorie=''}else c.subcategorie=el.value;
+    const k=koppelIndicaties();save();render();$(`#${a==='cl-ind'?'ind':'sub'}-${c.id}`)?.focus();
+    toast([`${a==='cl-ind'?'Indicatie':'Subcategorie'} opgeslagen`,koppelTekst(k)].filter(Boolean).join(' · '),k.plus||k.min?undo:null)}
+  if(a==='sch-ind'){const id=el.id.slice(3);vulSubs(el,$('#ss-'+id))}
   if(el.id==='cli-schema'){cliSchema=el.value;render()}
   if(el.id==='cli-ind'){cliInd=el.value;render()}
   if(el.id==='cf-cat'){const nw=el.value==='__nieuw';$('#cf-newcat-wrap').hidden=!nw;if(nw)$('#cf-newcat').focus()}
@@ -463,7 +472,7 @@ document.addEventListener('change',ev=>{
 document.addEventListener('submit',ev=>{
   ev.preventDefault();
   if(ev.target.id==='add-client'){const n=$('#new-client').value.trim();if(!n)return;
-    S.clients.push({id:uid(),name:n,age:+$('#new-age').value||null,indicatie:$('#new-ind').value.trim(),schema:''});const k=koppelIndicaties();save();render();
+    S.clients.push({id:uid(),name:n,age:+$('#new-age').value||null,indicatie:$('#new-ind').value,subcategorie:'',schema:''});const k=koppelIndicaties();save();render();
     const nc=S.clients.at(-1);toast(nc.schema?`Cliënt toegevoegd met schema ${schemaById(nc.schema).name} (via indicatie)`:'Cliënt toegevoegd')}
   if(ev.target.id==='card-form'){const c=sheet;c.name=$('#cf-name').value.trim();if(!c.name)return;
     let cat=$('#cf-cat').value;

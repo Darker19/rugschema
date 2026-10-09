@@ -7,9 +7,8 @@ const seed={
     {name:'Stabiliteit',color:'#1a7f7a'},{name:'Conditie',color:'#7a4bb0'}
   ],
   // subcategorieën voor indicaties (zelf te beheren) en de indicaties zelf
-  indGroepen:['Rug','Knie','Enkel'],
-  indicaties:[{name:'Scoliose',groep:'Rug'},{name:'Ziekte van Scheuermann',groep:'Rug'},{name:'Lage rugpijn',groep:'Rug'},
-    {name:'Osgood-Schlatter',groep:'Knie'},{name:'Enkelverstuiking',groep:'Enkel'}],
+  // indicaties met subcategorieën (zelf te beheren in de app)
+  indLijst:[{name:'Rug',subs:['Scoliose','Ziekte van Scheuermann','Lage rugpijn']},{name:'Knie',subs:['Osgood-Schlatter']},{name:'Voet',subs:['Tenen','Enkel']}],
   cards:[
     {id:'e1',name:'Bekkenkantelen in rugligging',cat:'Mobiliteit',sets:3,reps:10,hold:5,rest:30,note:'Rustig ademen, onderrug zacht tegen de mat.'},
     {id:'e2',name:'Cat-camel (kleine uitslag)',cat:'Mobiliteit',sets:2,reps:8,hold:0,rest:30,note:'Alleen in pijnvrij bereik bewegen.'},
@@ -31,10 +30,10 @@ const seed={
     {id:'s3',name:'Fase 3 · Belasten',maxFlex:90,days:3,weeks:6,items:['e8','e9','e10']}
   ],
   clients:[
-    {id:'c1',name:'Sanne de Vries',age:14,indicatie:'Scoliose',schema:'s2',custom:{maxFlex:40,removed:['e7'],extra:[{card:'e11',sets:2,reps:10,hold:0,rest:30}],tweak:{e4:{hold:5},e5:{reps:6}}}},
-    {id:'c2',name:'Mehmet Yilmaz',age:11,indicatie:'Ziekte van Scheuermann',schema:'s1'},
-    {id:'c3',name:'Joost Bakker',age:16,indicatie:'Lage rugpijn',schema:'s3'},
-    {id:'c4',name:'Lotte Jansen',age:9,indicatie:'Scoliose',schema:''}
+    {id:'c1',name:'Sanne de Vries',age:14,indicatie:'Rug',subcategorie:'Scoliose',schema:'s2',custom:{maxFlex:40,removed:['e7'],extra:[{card:'e11',sets:2,reps:10,hold:0,rest:30}],tweak:{e4:{hold:5},e5:{reps:6}}}},
+    {id:'c2',name:'Mehmet Yilmaz',age:11,indicatie:'Rug',subcategorie:'Ziekte van Scheuermann',schema:'s1'},
+    {id:'c3',name:'Joost Bakker',age:16,indicatie:'Rug',subcategorie:'Lage rugpijn',schema:'s3'},
+    {id:'c4',name:'Lotte Jansen',age:9,indicatie:'Rug',subcategorie:'Scoliose',schema:''}
   ],
   ratings:[]
 };

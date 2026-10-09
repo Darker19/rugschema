@@ -318,3 +318,8 @@ body:is([data-modus="login"],[data-modus="laden"]) .seg{visibility:hidden}
 .ind-new .btn{flex:0 0 auto}
 .col-head.drag-ghost{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px}
 .ind-rij .cat-count{min-width:92px;text-align:right}
+.ind-velden{max-width:560px}
+.ind-velden .field{flex:1 1 200px}
+.ind-fold{padding:4px;margin:0}
+.ind-fold:disabled{opacity:.35;cursor:default}
+.ind-groep:not(.open){padding-block:6px}
