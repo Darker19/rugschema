@@ -6,6 +6,10 @@ const seed={
     {name:'Mobiliteit',color:'#2f6fb0'},{name:'Kracht',color:'#b4552a'},
     {name:'Stabiliteit',color:'#1a7f7a'},{name:'Conditie',color:'#7a4bb0'}
   ],
+  // subcategorieën voor indicaties (zelf te beheren) en de indicaties zelf
+  indGroepen:['Rug','Knie','Enkel'],
+  indicaties:[{name:'Scoliose',groep:'Rug'},{name:'Ziekte van Scheuermann',groep:'Rug'},{name:'Lage rugpijn',groep:'Rug'},
+    {name:'Osgood-Schlatter',groep:'Knie'},{name:'Enkelverstuiking',groep:'Enkel'}],
   cards:[
     {id:'e1',name:'Bekkenkantelen in rugligging',cat:'Mobiliteit',sets:3,reps:10,hold:5,rest:30,note:'Rustig ademen, onderrug zacht tegen de mat.'},
     {id:'e2',name:'Cat-camel (kleine uitslag)',cat:'Mobiliteit',sets:2,reps:8,hold:0,rest:30,note:'Alleen in pijnvrij bereik bewegen.'},

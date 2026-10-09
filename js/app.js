@@ -19,13 +19,15 @@ function pager(k,totaal){const n=Math.ceil(totaal/PER[k]),p=pagina[k];if(n<=1)re
     <span class="num">Pagina ${p+1} van ${n}</span><button class="btn ghost small" data-act="pagina" data-k="${k}" data-p="${p+1}" ${p>=n-1?'disabled':''}>Volgende ›</button></nav>`}
 const zoekVeld=(k,tekst)=>`<input type="search" class="zoek" id="zoek-${k}" data-zoek="${k}" value="${esc(zoek[k])}" placeholder="${tekst}" aria-label="${tekst}">`;
 const telTekst=(n,tot,een,meer)=>n===tot?`${tot} ${tot===1?een:meer}`:`${n} van ${tot} ${tot===1?een:meer}`;
-const indicaties=()=>[...new Set([...S.clients,...S.schemas].map(c=>(c.indicatie||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'nl'));
+// alle indicaties, per subcategorie (zie js/indicaties.js)
+const indicaties=()=>{registreerIndicaties();return indPerGroep().flatMap(b=>b.items.map(i=>i.name))};
 // Indicatie ↔ schema: een cliënt met een indicatie die bij een schema hoort, krijgt dat schema automatisch (c.viaIndicatie).
 // Elke cliënt zonder schema krijgt het schema van zijn indicatie; een zelf gekozen schema blijft staan.
 // Hoort de indicatie niet meer bij een schema, dan wordt een automatische koppeling losgemaakt.
 const indNorm=v=>String(v||'').trim().toLowerCase();
 const schemaVoorIndicatie=ind=>indNorm(ind)?S.schemas.find(x=>indNorm(x.indicatie)===indNorm(ind)):null;
 function koppelIndicaties(){
+  registreerIndicaties();
   let plus=0,min=0;
   for(const c of S.clients){
     const m=schemaVoorIndicatie(c.indicatie);
@@ -51,6 +53,7 @@ function gebruikGegevens(g,afgevinkt){
   // oudere opslag heeft nog geen categorielijst; kaarten met een onbekende categorie krijgen er een
   if(!S.cats)S.cats=structuredClone(seed.cats);
   S.cards.forEach(c=>{if(!S.cats.some(x=>x.name===c.cat))S.cats.push({name:c.cat,color:vrijeKleur()})});
+  registreerIndicaties();
   done=afgevinkt||{};activeClient=S.clients[0]?.id||'';fbClient=activeClient;
   allSchemas().forEach(sortItems);
 }
@@ -84,7 +87,7 @@ function render(){
   $('#v-ther').setAttribute('aria-pressed',view==='ther');
   $('#v-cli').setAttribute('aria-pressed',view==='cli');
   $('#app').innerHTML=demoBalk()+(view==='ther'?therapist():client());
-  $('#overlay').innerHTML=sheet?sheetHtml():linkCard?linkHtml():imp?importHtml():catBeheer?catBeheerHtml():'';
+  $('#overlay').innerHTML=sheet?sheetHtml():linkCard?linkHtml():imp?importHtml():catBeheer?catBeheerHtml():indBeheer?indBeheerHtml():'';
 }
 const demoBalk=()=>modus==='demo'?`<p class="demo-balk" role="note"><b>Demo</b> · ${serverMelding?esc(serverMelding)+' ':''}Gegevens worden alleen in deze browser bewaard. Gebruik geen echte namen.</p>`:'';
 function voetTekst(){
@@ -166,8 +169,10 @@ function columnHtml(s){
         <label class="field"><span>Per week</span><input id="sd-${s.id}" type="number" min="1" max="7" value="${s.days}"></label>
         <label class="field"><span>Weken</span><input id="sw-${s.id}" type="number" min="1" max="52" value="${s.weeks}"></label></div>
       <div class="row" style="justify-content:space-between">${s.client?`<button class="btn danger small" style="flex:0 0 auto" data-act="reset-custom" data-id="${s.client}">Terug naar basisschema</button>`:`<button class="btn danger small" style="flex:0 0 auto" data-act="del-schema" data-id="${s.id}">Schema verwijderen</button>`}
-        <button class="btn small" style="flex:0 0 auto" data-act="save-schema" data-id="${s.id}">Klaar</button></div>`
-    :`<div class="col-head"><div style="min-width:0">${owner?`<h3>Persoonlijk schema van ${esc(owner.name.split(' ')[0])}</h3>`:foldHead('col-'+s.id,`<h3>${esc(s.name)}</h3>`)}
+        <span style="flex:0 0 auto;display:flex;gap:6px">${s.client?'':`<button class="btn ghost small" data-act="sch-op" data-id="${s.id}" ${S.schemas[0]?.id===s.id?'disabled':''} title="Eerder in de volgorde">← Eerder</button>
+          <button class="btn ghost small" data-act="sch-neer" data-id="${s.id}" ${S.schemas.at(-1)?.id===s.id?'disabled':''} title="Later in de volgorde">Later →</button>`}
+        <button class="btn small" data-act="save-schema" data-id="${s.id}">Klaar</button></span></div>`
+    :`<div class="col-head" ${s.client?'':`data-drag="schema" data-schema="${s.id}"`}>${s.client?'':GRIP}<div style="min-width:0;flex:1">${owner?`<h3>Persoonlijk schema van ${esc(owner.name.split(' ')[0])}</h3>`:foldHead('col-'+s.id,`<h3>${esc(s.name)}</h3>`)}
         <div class="chips" style="margin-top:6px">${s.indicatie?`<span class="indicatie" title="Indicatie: cliënten krijgen dit schema automatisch">${esc(s.indicatie)}</span>`:''}<span class="chip">${s.days}×/week</span><span class="chip">${s.weeks} wkn</span></div></div>
         <button class="icon-btn" data-act="edit-schema" data-id="${s.id}" aria-label="Schema-instellingen" title="Instellingen">⋯</button></div>`}
     ${isF('col-'+s.id)&&!editing?`<button class="folded-sum" data-act="fold" data-k="col-${s.id}">
@@ -184,7 +189,8 @@ function columnHtml(s){
 function therapist(){
   const kaarten=cats().flatMap(cat=>S.cards.filter(c=>c.cat===cat)).filter(c=>(catFilter==='Alle'||c.cat===catFilter)&&past([c.name,c.note,c.cat],zoek.lib));
   const schemas=S.schemas.filter(x=>past([x.name,...x.items.map(i=>card(i.card)?.name)],zoek.sch));
-  const clienten=S.clients.filter(c=>past([c.name,c.indicatie],zoek.cli)&&(!cliSchema||(cliSchema==='-'?!c.schema:c.schema===cliSchema))&&(!cliInd||(c.indicatie||'').trim()===cliInd));
+  const clienten=S.clients.filter(c=>past([c.name,c.indicatie,groepVan(c.indicatie)],zoek.cli)&&(!cliSchema||(cliSchema==='-'?!c.schema:c.schema===cliSchema))
+    &&(!cliInd||(cliInd.startsWith('g:')?groepVan(c.indicatie)===cliInd.slice(2):indNorm(c.indicatie)===indNorm(cliInd))));
   return `<datalist id="ind-lijst">${indicaties().map(i=>`<option value="${esc(i)}">`).join('')}</datalist>
   <div style="margin-top:20px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap"><div><h1>Praktijkoverzicht</h1>
     <p class="lede">Sleep oefenkaarten naar een schema, of klik op een kaart om hem te koppelen. Sleep ze terug of naar de prullenbak om ze eruit te halen.</p></div>
@@ -216,11 +222,14 @@ function therapist(){
   <section class="section">
     <div class="section-head"><div>${foldHead('cli','<h2>Cliënten</h2>')}<p class="lede" style="font-size:.92rem">Open een cliënt om het schema te bekijken of persoonlijk aan te passen.</p></div>
       ${isF('cli')?'':`<button class="btn ghost small" data-act="open-all">${S.clients.every(c=>isOpen(c.id))?'Alles dichtklappen':'Alles openklappen'}</button>`}</div>
-    ${isF('cli')?'':`<div class="zoekbalk">${zoekVeld('cli','Zoek op naam of indicatie')}
+    ${isF('cli')?'':`<div class="zoekbalk">${zoekVeld('cli','Zoek op naam, indicatie of subcategorie')}
         <select id="cli-schema" aria-label="Filter op schema"><option value="">Alle schema's</option><option value="-" ${cliSchema==='-'?'selected':''}>Geen schema</option>
           ${S.schemas.map(x=>`<option value="${x.id}" ${cliSchema===x.id?'selected':''}>${esc(x.name)}</option>`).join('')}</select>
         <select id="cli-ind" aria-label="Filter op indicatie"><option value="">Alle indicaties</option>
-          ${indicaties().map(i=>`<option value="${esc(i)}" ${cliInd===i?'selected':''}>${esc(i)}</option>`).join('')}</select></div>
+          ${(registreerIndicaties(),indPerGroep()).filter(b=>b.items.length||b.groep).map(b=>`<optgroup label="${b.groep?esc(b.groep):'Zonder subcategorie'}">
+            ${b.groep?`<option value="g:${esc(b.groep)}" ${cliInd==='g:'+b.groep?'selected':''}>Alle in ${esc(b.groep)}</option>`:''}
+            ${b.items.map(i=>`<option value="${esc(i.name)}" ${cliInd===i.name?'selected':''}>${esc(i.name)}</option>`).join('')}</optgroup>`).join('')}</select>
+        <button class="btn ghost small" data-act="ind-open" style="flex:0 0 auto">✎ Indicaties</button></div>
       <div class="clients">${clienten.length<S.clients.length?`<p class="lede" style="font-size:.92rem;margin:0">${telTekst(clienten.length,S.clients.length,'cliënt','cliënten')}</p>`:''}
       ${clienten.map(clientCard).join('')||(S.clients.length?'<p class="empty">Geen cliënten gevonden.</p>':'')}
       <form id="add-client" class="row add-client">
@@ -239,7 +248,7 @@ function clientCard(c){
   return `<article class="cl ${open?'open':''}" id="cl-${c.id}">
     <div class="cl-head">
       <button class="fold" data-act="open-client" data-id="${c.id}" aria-expanded="${open}">${CHEV}<span class="avatar">${initials(c.name)}</span>
-        <span><strong>${esc(c.name)}</strong>${c.age?` <span class="num" style="color:var(--muted);font-size:.85rem">${c.age} jr</span>`:''}${c.indicatie?`<span class="indicatie">${esc(c.indicatie)}</span>`:''}</span></button>
+        <span><strong>${esc(c.name)}</strong>${c.age?` <span class="num" style="color:var(--muted);font-size:.85rem">${c.age} jr</span>`:''}${c.indicatie?`<span class="indicatie">${esc(indLabel(c.indicatie))}</span>`:''}</span></button>
       <div class="cl-status">${status}${c.custom&&base?`<span class="based">op basis van ${esc(base.name)}</span>`:''}${c.viaIndicatie&&base?'<span class="based">automatisch via indicatie</span>':''}</div>
     </div>
     ${open?`<div class="cl-body">
@@ -395,6 +404,9 @@ document.addEventListener('click',ev=>{
     const undo=snapshot();deleteCard(b.dataset.id);sheet=null;save();render();toast('Kaart verwijderd',undo)}
   if(a==='new-schema'){const s={id:uid(),name:'Nieuw schema',days:3,weeks:4,items:[]};S.schemas.push(s);editSchema=s.id;save();render();$('#sn-'+s.id)?.select()}
   if(a==='edit-schema'){if(editSchema){const f=syncSchemaForm(editSchema);const k=koppelIndicaties();save();if(f||k.plus||k.min)toast(f||koppelTekst(k))}editSchema=b.dataset.id;render()}
+  if(a==='sch-op'||a==='sch-neer'){const id=b.dataset.id, i=S.schemas.findIndex(x=>x.id===id), j=a==='sch-op'?i-1:i+1;
+    if(j<0||j>=S.schemas.length)return;syncSchemaForm(id);[S.schemas[i],S.schemas[j]]=[S.schemas[j],S.schemas[i]];
+    if(!zoek.sch.trim())pagina.sch=Math.floor(j/PER.sch);save();render();$(`[data-act="${a}"][data-id="${id}"]`)?.focus();return}
   if(a==='save-schema'){const undo=snapshot(), f=syncSchemaForm(b.dataset.id);
     if(f){toast(f);$('#si-'+b.dataset.id)?.select();return}
     const k=koppelIndicaties();editSchema=null;save();render();toast(['Schema opgeslagen',koppelTekst(k)].filter(Boolean).join(' · '),k.plus||k.min?undo:null)}
@@ -479,19 +491,26 @@ function startDrag(){
   const g=drag.el.cloneNode(true);g.classList.add('drag-ghost');g.style.width=r.width+'px';g.removeAttribute('data-drop');
   document.body.appendChild(g);drag.ghost=g;drag.dx=drag.x-r.left;drag.dy=drag.y-r.top;
   drag.el.classList.add('source');document.body.classList.add('dragging');
-  const t=$('#trash');t.hidden=false;t.textContent=drag.el.dataset.drag==='card'?'🗑 Kaart verwijderen':'🗑 Uit schema halen';
+  const t=$('#trash');t.hidden=drag.el.dataset.drag==='schema';t.textContent=drag.el.dataset.drag==='card'?'🗑 Kaart verwijderen':'🗑 Uit schema halen';
   drag.started=true;autoScroll();
 }
 function autoScroll(){if(!drag||!drag.started)return;
   const y=drag.cy, m=70; if(y<m+60)scrollBy(0,-14);else if(y>innerHeight-m-70)scrollBy(0,14);
   requestAnimationFrame(autoScroll)}
-function clearOver(){document.querySelectorAll('.over').forEach(x=>x.classList.remove('over'));document.querySelectorAll('.drop-line').forEach(x=>x.remove())}
+function clearOver(){document.querySelectorAll('.over,.drop-voor,.drop-na').forEach(x=>x.classList.remove('over','drop-voor','drop-na'));document.querySelectorAll('.drop-line').forEach(x=>x.remove())}
 document.addEventListener('pointermove',e=>{
   if(!drag||!drag.el)return;
   if(!drag.started){if(Math.hypot(e.clientX-drag.x,e.clientY-drag.y)<6)return;startDrag()}
   e.preventDefault();drag.cy=e.clientY;
   drag.ghost.style.left=(e.clientX-drag.dx)+'px';drag.ghost.style.top=(e.clientY-drag.dy)+'px';
   clearOver();drag.target=null;
+  if(drag.el.dataset.drag==='schema'){ // schema's: vóór of na een ander schema neerzetten
+    const col=document.elementFromPoint(e.clientX,e.clientY)?.closest('.board > .col');
+    if(!col||col.dataset.schema===drag.el.dataset.schema)return;
+    const r=col.getBoundingClientRect(), eenKolom=getComputedStyle(col.parentElement).gridTemplateColumns.split(' ').length===1;
+    const voor=eenKolom?e.clientY<r.top+r.height/2:e.clientX<r.left+r.width/2;
+    col.classList.add(voor?'drop-voor':'drop-na');drag.target={type:'volgorde',doel:col.dataset.schema,voor};return;
+  }
   const zone=document.elementFromPoint(e.clientX,e.clientY)?.closest('[data-drop]'); if(!zone)return;
   zone.classList.add('over');drag.target={type:zone.dataset.drop,schema:zone.dataset.schema};
   if(zone.dataset.drop==='schema'){
@@ -511,6 +530,12 @@ function endDrag(cancel){
   if(cancel||!d.target)return;
   const t=d.target, isCard=d.el.dataset.drag==='card';
   const undo=snapshot();
+  if(d.el.dataset.drag==='schema'){
+    if(t.type!=='volgorde')return;
+    const [sc]=S.schemas.splice(S.schemas.findIndex(x=>x.id===d.el.dataset.schema),1);
+    S.schemas.splice(S.schemas.findIndex(x=>x.id===t.doel)+(t.voor?0:1),0,sc);
+    save();render();toast('Volgorde aangepast',undo);return;
+  }
   if(isCard){const cid=d.el.dataset.card;
     if(t.type==='schema'){if(addToSchema(t.schema,cid,t.idx)){save();render();toast('Kaart toegevoegd aan schema',undo)}}
     else if(t.type==='trash'){const nm=card(cid).name;deleteCard(cid);save();render();toast(`"${nm}" verwijderd`,undo)}
@@ -527,7 +552,7 @@ document.addEventListener('pointerup',()=>endDrag(false));
 document.addEventListener('pointercancel',()=>endDrag(true));
 
 $('#v-ther').onclick=()=>{view='ther';render()};
-$('#v-cli').onclick=()=>{view='cli';sheet=null;linkCard=null;imp=null;catBeheer=null;editSchema=null;render()};
+$('#v-cli').onclick=()=>{view='cli';sheet=null;linkCard=null;imp=null;catBeheer=null;indBeheer=null;editSchema=null;render()};
 $('#to-top').onclick=()=>scrollTo({top:0,behavior:matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth'});
 $('#uitloggen').onclick=uitloggen;
 document.addEventListener('submit',ev=>{if(ev.target.id==='login-form')inloggen()});
