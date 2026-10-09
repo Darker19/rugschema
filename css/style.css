@@ -7,7 +7,7 @@
   --accent:#8f4119; --accent-soft:#ffe9dc; --fill:#f9b18a; --on-fill:#000000; --head:#ffd0b6; --head-line:#f9b18a;
   --mark-yellow:rgb(255 200 91 / .6); --mark-pink:rgb(250 157 183 / .55);
   --warn:#9a6200; --warn-soft:#fdf0d8; --ok:#2e7d4f; --danger:#b3362f; --danger-soft:#f8e1df;
-  --c-mob:#2f6fb0; --c-stab:#1a7f7a; --c-kracht:#b4552a; --c-cond:#7a4bb0;
+  --c-cond:#7a4bb0; /* paars voor persoonlijke schema's; categoriekleuren staan in de gegevens (S.cats) */
   --display:"Cal Sans",system-ui,sans-serif; --body:"Special Gothic",system-ui,sans-serif; --mono:"JetBrains Mono",ui-monospace,monospace;
   color-scheme:light;
 }
@@ -74,8 +74,6 @@ textarea{resize:vertical;min-height:60px}
 .library.over{border-color:var(--accent);background:var(--accent-soft)}
 .card{--cat:var(--accent);position:relative;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 10px 10px 14px;display:flex;gap:6px;align-items:flex-start;user-select:none;-webkit-user-select:none;cursor:grab;overflow:hidden}
 .card::before{content:"";position:absolute;inset:0 auto 0 0;width:5px;background:var(--cat)}
-.card[data-cat="Mobiliteit"]{--cat:var(--c-mob)} .card[data-cat="Stabiliteit"]{--cat:var(--c-stab)}
-.card[data-cat="Kracht"]{--cat:var(--c-kracht)} .card[data-cat="Conditie"]{--cat:var(--c-cond)}
 .card-body{flex:1;min-width:0}
 .card-title{font-weight:600;line-height:1.3}
 .card-meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:3px;font-size:.82rem;color:var(--muted)}
@@ -110,6 +108,26 @@ textarea{resize:vertical;min-height:60px}
 .scrim{position:fixed;inset:0;z-index:50;background:rgb(10 20 19 / .45);display:grid;place-items:end center;padding:16px}
 @media(min-width:600px){.scrim{place-items:center}}
 .sheet{background:var(--surface);border-radius:16px;padding:20px;width:100%;max-width:520px;max-height:calc(100% - 32px);overflow:auto;display:flex;flex-direction:column;gap:12px}
+/* Categorieën beheren */
+.filter.cat-manage{border-style:dashed;color:var(--accent)}
+.cat-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.cat-row{border:1px solid var(--line);border-left:5px solid var(--cat);border-radius:12px;padding:8px 8px 8px 10px;background:var(--surface)}
+.cat-main{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.cat-swatch{width:30px;height:30px;border-radius:50%;background:var(--cat);border:3px solid var(--surface);box-shadow:0 0 0 1px var(--line);cursor:pointer;flex:0 0 auto;padding:0}
+.cat-swatch:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.cat-name{flex:1 1 140px;font-weight:600;color:var(--cat);background:transparent;border-color:transparent}
+.cat-name:hover,.cat-name:focus{border-color:var(--line);background:var(--bg)}
+.cat-count{font-size:.8rem;color:var(--muted);white-space:nowrap}
+.cat-btns{display:flex;gap:2px;margin-left:auto}
+.icon-btn:disabled{opacity:.3;cursor:default;background:none}
+.cat-palet{display:flex;flex-wrap:wrap;gap:8px;padding:10px 2px 4px}
+.cat-palet button{width:30px;height:30px;border-radius:50%;background:var(--k);border:3px solid var(--surface);box-shadow:0 0 0 1px var(--line);cursor:pointer;padding:0}
+.cat-palet button[aria-pressed="true"]{box-shadow:0 0 0 2px var(--ink)}
+.cat-palet button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.cat-weg{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:8px;padding:10px;border-radius:10px;background:var(--danger-soft);font-size:.9rem}
+.cat-weg select{width:auto;flex:1 1 140px}
+.cat-new{display:flex;gap:8px}
+.cat-new .btn{flex:0 0 auto}
 /* Importeren uit Excel */
 .imp-tile{display:flex;flex-direction:column;border:1.5px dashed var(--line);border-radius:12px;min-height:64px;overflow:hidden}
 .imp-tile:hover{border-color:var(--accent)}
@@ -192,8 +210,6 @@ textarea{resize:vertical;min-height:60px}
 .progress i{display:block;height:100%;background:var(--accent);transition:width .3s}
 .list{display:flex;flex-direction:column;gap:10px}
 .ex{--cat:var(--accent);background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--cat);border-radius:14px;padding:16px;display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:start}
-.ex[data-cat="Mobiliteit"]{--cat:var(--c-mob)} .ex[data-cat="Stabiliteit"]{--cat:var(--c-stab)}
-.ex[data-cat="Kracht"]{--cat:var(--c-kracht)} .ex[data-cat="Conditie"]{--cat:var(--c-cond)}
 .ex.done h3{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--accent)}
 .check{width:28px;height:28px;border-radius:8px;border:2px solid var(--accent);background:transparent;cursor:pointer;display:grid;place-items:center;color:var(--on-fill);padding:0}
 .ex.done .check{background:var(--fill);border-color:var(--fill)}
@@ -256,3 +272,12 @@ textarea{resize:vertical;min-height:60px}
 .filter[aria-pressed="true"] i{background:var(--surface)}
 .filter[aria-pressed="true"] .num{color:inherit;opacity:.8}
 .filter:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* Inloggen en demo-melding */
+body:is([data-modus="login"],[data-modus="laden"]) .seg{visibility:hidden}
+.login{max-width:400px;margin:40px auto 0;background:var(--surface);border:2px solid var(--head-line);border-radius:22px;padding:24px;display:flex;flex-direction:column;gap:12px}
+.login img{width:72px;height:auto;align-self:center}
+.login h1{align-self:center}
+.login .lede{text-align:center;margin:0}
+.login .btn{align-self:stretch;margin-top:4px}
+.demo-balk{margin:16px 0 0;padding:8px 14px;border-radius:12px;background:var(--warn-soft);color:var(--warn);font-size:.88rem;border:1px dashed var(--warn)}

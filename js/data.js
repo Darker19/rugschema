@@ -1,6 +1,11 @@
 // Voorbeelddata: verzonnen oefeningen, schema's, cliënten en beoordelingen.
 // Pas hier de testdata aan. Echte cliëntgegevens horen hier nooit in.
 const seed={
+  // categorieën in deze volgorde; kleur moet goed leesbaar zijn op wit
+  cats:[
+    {name:'Mobiliteit',color:'#2f6fb0'},{name:'Kracht',color:'#b4552a'},
+    {name:'Stabiliteit',color:'#1a7f7a'},{name:'Conditie',color:'#7a4bb0'}
+  ],
   cards:[
     {id:'e1',name:'Bekkenkantelen in rugligging',cat:'Mobiliteit',sets:3,reps:10,hold:5,rest:30,note:'Rustig ademen, onderrug zacht tegen de mat.'},
     {id:'e2',name:'Cat-camel (kleine uitslag)',cat:'Mobiliteit',sets:2,reps:8,hold:0,rest:30,note:'Alleen in pijnvrij bereik bewegen.'},

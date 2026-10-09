@@ -27,7 +27,12 @@ function laadXlsx(){
 }
 
 const impNorm=v=>String(v??'').toLowerCase().replace(/\(.*?\)/g,'').replace(/[^a-zà-ÿ0-9]/g,'');
-const impCat=v=>{const n=impNorm(v);if(!n)return null;return CATS.find(c=>impNorm(c)===n||impNorm(c).startsWith(n)&&n.length>=3)||false};
+// Bestaande categorie (ook bij een begin van de naam, minstens 3 tekens), anders een nieuwe met die naam
+const impCat=v=>{const n=impNorm(v);if(!n)return null;
+  const al=cats().find(c=>impNorm(c)===n)||cats().find(c=>n.length>=3&&impNorm(c).startsWith(n));
+  if(al)return {name:al,nieuw:false};
+  const t=String(v).trim().replace(/\s+/g,' ');return {name:t.charAt(0).toUpperCase()+t.slice(1),nieuw:true}};
+const impCatBestaat=naam=>cats().find(c=>c.toLowerCase()===naam.toLowerCase());
 const impGetal=v=>{if(v===''||v==null)return null;const n=Math.round(+String(v).replace(',','.'));return Number.isFinite(n)&&n>=0?n:false};
 const impKaart=naam=>S.cards.find(c=>impNorm(c.name)===impNorm(naam));
 const impSchema=naam=>S.schemas.find(s=>impNorm(s.name)===impNorm(naam));
@@ -46,7 +51,7 @@ function impVerwerk(tabel){
     const rij={nr:kop+i+2,name:cel('name'),let:[],schemas:cel('schema').split(';').map(s=>s.trim()).filter(Boolean)};
     if(!rij.name){rij.status='fout';rij.let.push('Naam ontbreekt');return rij}
     const cat=impCat(cel('cat'));
-    rij.cat=cat||null;
+    rij.cat=cat?.name||null;rij.nieuweCat=!!cat?.nieuw;
     const VELD={sets:'Sets',reps:'Herhalingen',hold:'Vasthouden',rest:'Rust'};
     for(const f in VELD){const g=impGetal(cel(f));if(g===false)rij.let.push(`${VELD[f]} "${cel(f)}" is geen getal`);rij[f]=g===false?null:g}
     rij.note=cel('note')||null;
@@ -54,8 +59,7 @@ function impVerwerk(tabel){
     if(gezien[k]){rij.status='extra';rij.van=gezien[k];return rij}
     gezien[k]=rij;
     rij.bestaat=impKaart(rij.name);rij.status=rij.bestaat?'bijwerken':'nieuw';
-    if(cat===false)rij.let.push(`Onbekende categorie "${cel('cat')}"${rij.bestaat?': blijft '+rij.bestaat.cat:': wordt Mobiliteit'}`);
-    else if(!rij.bestaat&&!rij.cat)rij.let.push('Geen categorie: wordt Mobiliteit');
+    if(!rij.bestaat&&!rij.cat)rij.let.push(`Geen categorie: wordt ${cats()[0]}`);
     return rij;
   });
   return {rijen};
@@ -74,8 +78,9 @@ async function impBestand(file){
 }
 
 function impTelling(rijen){
-  const t={nieuw:0,bijwerken:0,fout:0,koppel:0,schemas:new Set()};
+  const t={nieuw:0,bijwerken:0,fout:0,koppel:0,schemas:new Set(),cats:new Set()};
   rijen.forEach(r=>{if(r.status in t)t[r.status]++;
+    if((r.status==='nieuw'||r.status==='bijwerken')&&r.nieuweCat)t.cats.add(r.cat.toLowerCase());
     if(r.status!=='fout')r.schemas.forEach(n=>{t.koppel++;if(!impSchema(n))t.schemas.add(n.toLowerCase())})});
   return t;
 }
@@ -83,6 +88,12 @@ function impTelling(rijen){
 function impToepassen(){
   const undo=snapshot(), nieuw={}, t=impTelling(imp.rijen);
   let toegevoegd=0;
+  // eerst de nieuwe categorieën aanmaken (één keer per naam, hoofdletters maken niet uit)
+  for(const r of imp.rijen){
+    if(r.status==='fout'||r.status==='extra'||!r.cat)continue;
+    const al=impCatBestaat(r.cat);
+    if(al)r.cat=al;else S.cats.push({name:r.cat,color:vrijeKleur()});
+  }
   for(const r of imp.rijen){
     if(r.status==='fout')continue;
     const bron=r.status==='extra'?r.van:r;
@@ -94,7 +105,7 @@ function impToepassen(){
         for(const f of ['sets','reps','hold','rest'])if(bron[f]!=null)c[f]=bron[f];
         if(bron.note)c.note=bron.note;
       }else{
-        c={id:uid(),name:bron.name,cat:bron.cat||'Mobiliteit',sets:bron.sets??3,reps:bron.reps??10,hold:bron.hold??0,rest:bron.rest??30,note:bron.note||''};
+        c={id:uid(),name:bron.name,cat:bron.cat||cats()[0],sets:bron.sets??3,reps:bron.reps??10,hold:bron.hold??0,rest:bron.rest??30,note:bron.note||''};
         S.cards.push(c);
       }
       bron.kaart=c;
@@ -107,26 +118,44 @@ function impToepassen(){
   }
   imp.rijen.forEach(r=>delete r.kaart);
   imp=null;save();render();
-  const d=[t.nieuw&&`${t.nieuw} nieuw`,t.bijwerken&&`${t.bijwerken} bijgewerkt`,toegevoegd&&`${toegevoegd}× in schema`].filter(Boolean).join(', ');
+  const d=[t.nieuw&&`${t.nieuw} nieuw`,t.cats.size&&`${t.cats.size} nieuwe categorie${t.cats.size===1?'':'ën'}`,t.bijwerken&&`${t.bijwerken} bijgewerkt`,toegevoegd&&`${toegevoegd}× in schema`].filter(Boolean).join(', ');
   toast(`Geïmporteerd: ${d||'niets veranderd'}`,undo);
+}
+
+// Zet keuzelijsten (gegevensvalidatie) in een werkblad. SheetJS kan dat zelf niet schrijven, dus voegen we
+// het stukje XML toe in het xlsx-bestand (een zip). Andere waarden blijven toegestaan (showErrorMessage=0).
+function impKeuzelijsten(X,data,blad,lijsten){
+  const zip=X.CFB.read(new Uint8Array(data),{type:'array'}), f=X.CFB.find(zip,`/xl/worksheets/sheet${blad}.xml`);
+  const dv=lijsten.map(([bereik,bron])=>`<dataValidation type="list" allowBlank="1" showErrorMessage="0" sqref="${bereik}"><formula1>${bron}</formula1></dataValidation>`).join('');
+  f.content=new TextEncoder().encode(new TextDecoder().decode(f.content).replace('</sheetData>',`</sheetData><dataValidations count="${lijsten.length}">${dv}</dataValidations>`));
+  f.size=f.content.length;
+  return X.CFB.write(zip,{type:'array',fileType:'zip',compression:true});
 }
 
 function impVoorbeeld(){
   laadXlsx().then(X=>{
+    const ct=cats(), cat=(naam,i)=>impCatBestaat(naam)||ct.find(c=>impNorm(c).startsWith(impNorm(naam)))||ct[i%ct.length];
     const rijen=[['Oefening','Categorie','Sets','Herhalingen','Vasthouden (s)','Rust (s)','Instructie','Schema'],
-      ['Bekkenkantelen in rugligging','Mobiliteit',3,10,5,30,'Rustig ademen, onderrug zacht tegen de mat.','Fase 1 · Ontlasten'],
-      ['Bird-dog','Stabiliteit',3,8,8,45,'Bekken stil houden, niet doorzakken.','Fase 2 · Opbouw stabiliteit'],
-      ['Glute bridge','Kracht',3,12,3,45,'Billen aanspannen bovenin.','Fase 2 · Opbouw stabiliteit; Fase 3 · Belasten'],
-      ['Wandelen','Conditie',1,1,0,0,'15 minuten in eigen tempo.','']];
+      ['Bekkenkantelen in rugligging',cat('Mobiliteit',0),3,10,5,30,'Rustig ademen, onderrug zacht tegen de mat.',S.schemas[0]?.name||''],
+      ['Bird-dog',cat('Stabiliteit',1),3,8,8,45,'Bekken stil houden, niet doorzakken.',S.schemas[1]?.name||''],
+      ['Glute bridge',cat('Kracht',2),3,12,3,45,'Billen aanspannen bovenin.',S.schemas.slice(1,3).map(x=>x.name).join('; ')],
+      ['Wandelen',cat('Conditie',3),1,1,0,0,'15 minuten in eigen tempo.','']];
     const uitleg=[['Kolom','Uitleg'],['Oefening','Verplicht. Bestaat de oefening al (zelfde naam), dan wordt de kaart bijgewerkt.'],
-      ['Categorie',`Een van: ${CATS.join(', ')}. Leeg bij een nieuwe kaart = Mobiliteit.`],
+      ['Categorie',`Kies uit de lijst (${ct.join(', ')}) of typ een nieuwe naam: die categorie wordt dan aangemaakt. Leeg bij een nieuwe kaart = ${ct[0]}.`],
       ['Sets, Herhalingen','Hele getallen. Leeg bij een nieuwe kaart = 3 sets, 10 herhalingen.'],
       ['Vasthouden (s), Rust (s)','Seconden. Leeg bij een nieuwe kaart = 0 en 30.'],['Instructie','Tekst die het kind ziet.'],
-      ['Schema','Optioneel. Naam van het schema waar de kaart in komt. Meerdere schema\'s scheiden met ;. Een onbekend schema wordt aangemaakt.']];
-    const wb=X.utils.book_new(), b1=X.utils.aoa_to_sheet(rijen), b2=X.utils.aoa_to_sheet(uitleg);
-    b1['!cols']=[{wch:30},{wch:13},{wch:6},{wch:12},{wch:15},{wch:9},{wch:45},{wch:44}];b2['!cols']=[{wch:24},{wch:100}];
-    X.utils.book_append_sheet(wb,b1,'Oefeningen');X.utils.book_append_sheet(wb,b2,'Uitleg');
-    X.writeFile(wb,'RugSchema-oefeningen-voorbeeld.xlsx');
+      ['Schema','Optioneel: mag leeg blijven. Kies uit de lijst of typ een nieuwe naam: dat schema wordt dan aangemaakt. Meerdere schema\'s scheiden met ;.']];
+    const n=Math.max(ct.length,S.schemas.length);
+    const lijst=[['Categorieën','Schema\'s'],...Array.from({length:n},(_,i)=>[ct[i]??'',S.schemas[i]?.name??''])];
+    const wb=X.utils.book_new(), b1=X.utils.aoa_to_sheet(rijen), b2=X.utils.aoa_to_sheet(uitleg), b3=X.utils.aoa_to_sheet(lijst);
+    b1['!cols']=[{wch:30},{wch:16},{wch:6},{wch:12},{wch:15},{wch:9},{wch:45},{wch:44}];b2['!cols']=[{wch:24},{wch:110}];b3['!cols']=[{wch:24},{wch:40}];
+    X.utils.book_append_sheet(wb,b1,'Oefeningen');X.utils.book_append_sheet(wb,b2,'Uitleg');X.utils.book_append_sheet(wb,b3,'Lijsten');
+    let data=X.write(wb,{type:'array',bookType:'xlsx'});
+    try{data=impKeuzelijsten(X,data,1,[[`B2:B${IMP_MAX+1}`,`Lijsten!$A$2:$A$${ct.length+1}`],...(S.schemas.length?[[`H2:H${IMP_MAX+1}`,`Lijsten!$B$2:$B$${S.schemas.length+1}`]]:[])])}
+    catch(e){/* zonder keuzelijsten is het bestand nog steeds bruikbaar */}
+    const url=URL.createObjectURL(new Blob([data],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
+    const a=Object.assign(document.createElement('a'),{href:url,download:'RugSchema-oefeningen-voorbeeld.xlsx'});
+    document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
   }).catch(()=>toast('Voorbeeldbestand kon niet worden gemaakt'));
 }
 
@@ -144,12 +173,12 @@ function importHtml(){
   return `<div class="scrim" data-act="imp-close"><div class="sheet wide" role="dialog" aria-label="Import controleren" tabindex="-1">${kop}
     <p class="lede" style="font-size:.92rem;margin:0">${esc(imp.bestand)} · ${imp.rijen.length} rij${imp.rijen.length===1?'':'en'}. Controleer en klik op Importeren.</p>
     <div class="chips">${t.nieuw?`<span class="chip">${t.nieuw} nieuwe kaart${t.nieuw===1?'':'en'}</span>`:''}${t.bijwerken?`<span class="chip">${t.bijwerken} bijwerken</span>`:''}
-      ${t.koppel?`<span class="chip">${t.koppel}× in schema</span>`:''}${t.schemas.size?`<span class="chip">${t.schemas.size} nieuw schema</span>`:''}${t.fout?`<span class="chip warn">${t.fout} overgeslagen</span>`:''}</div>
+      ${t.koppel?`<span class="chip">${t.koppel}× in schema</span>`:''}${t.schemas.size?`<span class="chip">${t.schemas.size} nieuw schema</span>`:''}${t.cats.size?`<span class="chip">${t.cats.size} nieuwe categorie${t.cats.size===1?'':'ën'}</span>`:''}${t.fout?`<span class="chip warn">${t.fout} overgeslagen</span>`:''}</div>
     <div class="imp-tabel"><table><thead><tr><th>Rij</th><th>Oefening</th><th>Categorie</th><th>Dosering</th><th>Schema</th><th>Status</th></tr></thead><tbody>
-    ${imp.rijen.map(r=>{const b=r.status==='extra'?r.van:r, c=b.bestaat, cat=b.cat||c?.cat||'Mobiliteit';
+    ${imp.rijen.map(r=>{const b=r.status==='extra'?r.van:r, c=b.bestaat, cat=b.cat||c?.cat||cats()[0];
       const v=f=>b[f]??c?.[f]??{sets:3,reps:10,hold:0,rest:30}[f];
       return `<tr class="st-${r.status}"><td class="num">${r.nr}</td><td>${esc(r.name)||'<i>leeg</i>'}</td>
-        <td>${r.status==='fout'?'':`<span class="cat" style="--cat:var(--c-${CATKEY[cat]})">${cat}</span>`}</td>
+        <td>${r.status==='fout'?'':`<span class="cat" style="--cat:${b.nieuweCat&&!impCatBestaat(cat)?'var(--muted)':catColor(impCatBestaat(cat)||cat)}">${esc(cat)}</span>${b.nieuweCat&&!impCatBestaat(cat)?' <span class="badge">nieuw</span>':''}`}</td>
         <td class="num">${r.status==='fout'?'':`${v('sets')}×${v('reps')}${v('hold')?` · ${v('hold')}s`:''}${v('rest')?` · rust ${v('rest')}s`:''}`}</td>
         <td>${r.schemas.map(n=>`${esc(n)}${impSchema(n)?'':' <span class="badge">nieuw</span>'}`).join('<br>')}</td>
         <td><span class="imp-st">${LABEL[r.status]}</span>${r.let.length?`<small>${r.let.map(esc).join('<br>')}</small>`:''}</td></tr>`}).join('')}

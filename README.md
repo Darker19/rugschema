@@ -7,8 +7,10 @@ Prototype van een oefenschema-app voor kinderfysiotherapie (rug).
 - `js/app.js`: alle logica en schermen
 - `js/data.js`: voorbeelddata (alleen verzonnen namen)
 - `js/versie.js`: versienummer onderaan de pagina. Wordt bij elke commit automatisch bijgewerkt door `.git/hooks/pre-commit` (dat bestand staat niet in git; zet het terug als je de repo opnieuw kloont)
+- `js/categorieen.js`: categorieën beheren (knop ✎ Categorieën in de kaartenbak). De categorieën staan in de gegevens (`S.cats`, naam + kleur), de volgorde daar is de volgorde in de hele app
 - `js/import.js`: oefeningen importeren uit Excel (knop in de kaartenbak). Leest het bestand met SheetJS (`js/vendor/xlsx.full.min.js`, Apache-2.0-licentie), dat pas laadt als je het importvenster opent
-- `js/opslag.js`: alle opslag op één plek. Nu localStorage in de browser; later vervang je alleen dit bestand door de echte database
+- `js/opslag.js`: alle opslag op één plek. Op app.groei-sterker.nl praat dit met de API (`api/`); zonder server (GitHub Pages-preview, lokaal) werkt de app als demo met opslag in de browser. Wil je naar een andere database (bijv. Supabase), dan vervang je alleen dit bestand
+- `api/`: PHP-API op Hostnet (inloggen en gegevens in MySQL). `api/config.php` staat niet in git: de workflow maakt het bij het uploaden aan uit de GitHub-secrets `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASS` en `SETUP_CODE`. Eenmalig installeren via `https://app.groei-sterker.nl/api/setup.php` (vraagt de installatiecode)
 
 Met **Voorbeelddata herstellen** (rechtsboven in de therapeutweergave, twee keer klikken) zet je alles terug.
 
