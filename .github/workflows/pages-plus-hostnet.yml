@@ -1,0 +1,147 @@
+name: Pages preview → Hostnet deploy (app.groei-sterker.nl)
+
+# Zelfde werkwijze als de website:
+# 1. Elke push naar master komt eerst op GitHub Pages (https://darker19.github.io/rugschema/) om na te kijken.
+# 2. Daarna wacht de Hostnet-stap op goedkeuring (omgeving "production") en pas dan gaat het via FTP naar app.groei-sterker.nl.
+
+on:
+  push:
+    branches: [ master ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+env:
+  SERVER_DIR: "/customers/3/b/0/cebjgz0mr/webroots/sites/app.groei-sterker.nl/"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (full history for commit summary)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Discord — RugSchema deploy gestart
+        continue-on-error: true
+        run: |
+          CHANGES=$(git log -5 --pretty=format:"• %s" | sed ':a;N;$!ba;s/\n/\\n/g')
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          curl -H "Content-Type: application/json" -X POST \
+            -d "{
+              \"embeds\": [{
+                \"title\": \"📱 RugSchema — Deploy gestart\",
+                \"description\": \"**Wijzigingen (laatste 5 commits):**\\n$CHANGES\\n\\nRun: $RUN_URL\",
+                \"color\": 3447003
+              }]
+            }" \
+            "${{ secrets.DISCORD_WEBHOOK }}"
+
+      - name: Prepare clean deploy folder (exclude junk)
+        run: |
+          mkdir -p deploy
+          rsync -av --delete \
+            --exclude='deploy/' \
+            --exclude='.git/' \
+            --exclude='.github/' \
+            --exclude='.gitignore' \
+            --exclude='.gitattributes' \
+            --exclude='README.md' \
+            --exclude='.vscode/' \
+            --exclude='node_modules/' \
+            ./ deploy/
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: deploy
+
+      - name: Upload CI artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-dist
+          path: deploy
+
+  deploy_pages:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Discord — RugSchema op GitHub Pages (nakijken)
+        if: success()
+        continue-on-error: true
+        run: |
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          curl -H "Content-Type: application/json" -X POST \
+            -d "{
+              \"embeds\": [{
+                \"title\": \"📱 RugSchema — Klaar om na te kijken\",
+                \"description\": \"Preview: ${{ steps.deployment.outputs.page_url }}\\n\\nAlles goed? Keur de Hostnet-stap goed:\\n$RUN_URL\",
+                \"color\": 3066993
+              }]
+            }" \
+            "${{ secrets.DISCORD_WEBHOOK }}"
+
+      - name: Discord — RugSchema GitHub Pages gefaald
+        if: failure()
+        continue-on-error: true
+        run: |
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          curl -H "Content-Type: application/json" -X POST \
+            -d "{\"embeds\": [{\"title\": \"📱 RugSchema — GitHub Pages gefaald\", \"description\": \"Run: $RUN_URL\", \"color\": 15158332}]}" \
+            "${{ secrets.DISCORD_WEBHOOK }}"
+
+  deploy_hostnet:
+    needs: deploy_pages
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://app.groei-sterker.nl/
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: app-dist
+          path: site
+
+      - name: FTP deploy to Hostnet
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.6
+        with:
+          server: ${{ secrets.SFTP_HOST }}
+          username: ${{ secrets.SFTP_USER }}
+          password: ${{ secrets.SFTP_PASSWORD }}
+          protocol: ftp
+          port: 21
+          local-dir: site/
+          server-dir: ${{ env.SERVER_DIR }}
+
+      - name: Discord — RugSchema live op app.groei-sterker.nl
+        if: success()
+        continue-on-error: true
+        run: |
+          curl -H "Content-Type: application/json" -X POST \
+            -d "{\"embeds\": [{\"title\": \"📱 RugSchema — Live\", \"description\": \"https://app.groei-sterker.nl/ is bijgewerkt ✅\", \"color\": 3066993}]}" \
+            "${{ secrets.DISCORD_WEBHOOK }}"
+
+      - name: Discord — RugSchema Hostnet gefaald
+        if: failure()
+        continue-on-error: true
+        run: |
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          curl -H "Content-Type: application/json" -X POST \
+            -d "{\"embeds\": [{\"title\": \"📱 RugSchema — Hostnet deploy gefaald ❌\", \"description\": \"Run: $RUN_URL\", \"color\": 15158332}]}" \
+            "${{ secrets.DISCORD_WEBHOOK }}"
