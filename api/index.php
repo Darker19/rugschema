@@ -11,6 +11,9 @@ require __DIR__ . '/lib.php';
 $actie = $_GET['a'] ?? '';
 
 if ($actie === 'sessie') {
+  // eerst controleren of de server is ingesteld en de database bereikbaar is (anders 503: de app draait dan als demo)
+  instellingen();
+  db();
   $g = huidige_gebruiker();
   antwoord($g ? ['ingelogd' => true, 'naam' => $g['naam'], 'email' => $g['email']] : ['ingelogd' => false]);
 }
