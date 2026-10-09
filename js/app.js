@@ -36,7 +36,7 @@ function render(){
   $('#v-ther').setAttribute('aria-pressed',view==='ther');
   $('#v-cli').setAttribute('aria-pressed',view==='cli');
   $('#app').innerHTML=view==='ther'?therapist():client();
-  $('#overlay').innerHTML=sheet?sheetHtml():linkCard?linkHtml():'';
+  $('#overlay').innerHTML=sheet?sheetHtml():linkCard?linkHtml():imp?importHtml():'';
 }
 
 /* ---------- Therapeut ---------- */
@@ -99,7 +99,9 @@ function therapist(){
       <div class="filters" role="group" aria-label="Filter op categorie">${['Alle',...CATS].map(c=>{const n=c==='Alle'?S.cards.length:S.cards.filter(x=>x.cat===c).length;
         return `<button class="filter" data-act="filter" data-cat="${c}" aria-pressed="${catFilter===c}" style="--cat:${c==='Alle'?'var(--ink)':`var(--c-${CATKEY[c]})`}">${c==='Alle'?'':'<i></i>'}${c} <span class="num">${n}</span></button>`}).join('')}</div></div>
     ${isF('lib')?'':`<div class="library" data-drop="library">${CATS.flatMap(cat=>S.cards.filter(c=>c.cat===cat)).filter(c=>catFilter==='Alle'||c.cat===catFilter).map(cardHtml).join('')}
-      <button class="new-card" data-act="new-card">+ Nieuwe kaart</button></div>`}
+      <button class="new-card" data-act="new-card">+ Nieuwe kaart</button>
+      <div class="imp-tile"><button class="imp-tile-main" data-act="imp-open">⇪ Importeren uit Excel</button>
+        <button class="imp-tile-sub" data-act="imp-voorbeeld">⤓ Voorbeeld downloaden</button></div></div>`}
   </section>
   <section class="section">
     <div class="section-head"><div>${foldHead('sch',"<h2>Schema's</h2>")}<p class="lede" style="font-size:.92rem">${S.schemas.length} basisschema's</p></div>
@@ -388,7 +390,7 @@ document.addEventListener('pointerup',()=>endDrag(false));
 document.addEventListener('pointercancel',()=>endDrag(true));
 
 $('#v-ther').onclick=()=>{view='ther';render()};
-$('#v-cli').onclick=()=>{view='cli';sheet=null;linkCard=null;editSchema=null;render()};
+$('#v-cli').onclick=()=>{view='cli';sheet=null;linkCard=null;imp=null;editSchema=null;render()};
 $('#to-top').onclick=()=>scrollTo({top:0,behavior:matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth'});
 $('#versie').textContent=`RugSchema · versie ${VERSIE.nummer} · ${VERSIE.datum}`;
 allSchemas().forEach(sortItems);

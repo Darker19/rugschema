@@ -110,6 +110,44 @@ textarea{resize:vertical;min-height:60px}
 .scrim{position:fixed;inset:0;z-index:50;background:rgb(10 20 19 / .45);display:grid;place-items:end center;padding:16px}
 @media(min-width:600px){.scrim{place-items:center}}
 .sheet{background:var(--surface);border-radius:16px;padding:20px;width:100%;max-width:520px;max-height:calc(100% - 32px);overflow:auto;display:flex;flex-direction:column;gap:12px}
+/* Importeren uit Excel */
+.imp-tile{display:flex;flex-direction:column;border:1.5px dashed var(--line);border-radius:12px;min-height:64px;overflow:hidden}
+.imp-tile:hover{border-color:var(--accent)}
+.imp-tile button{background:transparent;border:0;cursor:pointer;color:var(--accent)}
+.imp-tile-main{flex:1;font:600 .92rem var(--body);padding:12px 8px}
+.imp-tile-sub{font:500 .82rem var(--body);padding:8px;border-top:1.5px dashed var(--line)!important;color:var(--muted)!important}
+.imp-tile button:hover{background:var(--accent-soft)}
+.imp-tile-sub:hover{color:var(--accent)!important}
+.imp-tile button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.sheet.wide{max-width:880px}
+.sheet:focus{outline:none}
+.imp-drop{position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center;border:2px dashed var(--head-line);border-radius:14px;padding:26px 16px;background:var(--accent-soft);cursor:pointer;color:var(--muted)}
+.imp-drop b{color:var(--ink);font-size:1.05rem}
+.imp-drop input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}
+.imp-drop:hover,.imp-drop.over{border-style:solid;background:var(--head)}
+.imp-drop:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+.imp-drop-icon{font-size:1.8rem;color:var(--accent);line-height:1}
+.imp-fout{margin:0;background:var(--danger-soft);color:var(--danger);border-radius:10px;padding:10px 12px;font-size:.92rem}
+.imp-tabel{overflow:auto;max-height:min(50vh,420px);border:1px solid var(--line);border-radius:12px}
+.imp-tabel table{border-collapse:collapse;width:100%;font-size:.88rem}
+.imp-tabel th{position:sticky;top:0;background:var(--surface);text-align:left;font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:8px 10px;border-bottom:1px solid var(--line)}
+.imp-tabel td{padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+.imp-tabel tr:last-child td{border-bottom:0}
+.imp-tabel td small{display:block;color:var(--warn);font-size:.78rem;margin-top:2px}
+.imp-st{font-weight:600;white-space:nowrap}
+.st-nieuw .imp-st{color:var(--ok)} .st-bijwerken .imp-st,.st-extra .imp-st{color:var(--accent)}
+.st-fout td{color:var(--muted)} .st-fout .imp-st{color:var(--danger)} .st-fout td small{color:var(--danger)}
+.imp-tabel td.num{white-space:nowrap}
+/* Telefoon: elke rij als blokje in plaats van een brede tabel */
+@media(max-width:600px){
+  .imp-tabel thead{display:none}
+  .imp-tabel tr{display:grid;grid-template-columns:2.2em 1fr;gap:2px 8px;padding:10px 12px;border-bottom:1px solid var(--line)}
+  .imp-tabel tr:last-child{border-bottom:0}
+  .imp-tabel td{border:0;padding:0}
+  .imp-tabel td:first-child{grid-row:1/span 6;color:var(--muted)}
+  .imp-tabel td:nth-child(2){font-weight:600}
+  .imp-tabel td:empty{display:none}
+}
 .library .card{cursor:pointer}
 .library .card:hover{border-color:var(--head-line)}
 .link-list{display:flex;flex-direction:column;gap:8px}
