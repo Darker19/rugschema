@@ -27,10 +27,10 @@ const seed={
     {id:'s3',name:'Fase 3 · Belasten',maxFlex:90,days:3,weeks:6,items:['e8','e9','e10']}
   ],
   clients:[
-    {id:'c1',name:'Sanne de Vries',age:14,schema:'s2',custom:{maxFlex:40,removed:['e7'],extra:[{card:'e11',sets:2,reps:10,hold:0,rest:30}],tweak:{e4:{hold:5},e5:{reps:6}}}},
-    {id:'c2',name:'Mehmet Yilmaz',age:11,schema:'s1'},
-    {id:'c3',name:'Joost Bakker',age:16,schema:'s3'},
-    {id:'c4',name:'Lotte Jansen',age:9,schema:''}
+    {id:'c1',name:'Sanne de Vries',age:14,indicatie:'Scoliose',schema:'s2',custom:{maxFlex:40,removed:['e7'],extra:[{card:'e11',sets:2,reps:10,hold:0,rest:30}],tweak:{e4:{hold:5},e5:{reps:6}}}},
+    {id:'c2',name:'Mehmet Yilmaz',age:11,indicatie:'Ziekte van Scheuermann',schema:'s1'},
+    {id:'c3',name:'Joost Bakker',age:16,indicatie:'Lage rugpijn',schema:'s3'},
+    {id:'c4',name:'Lotte Jansen',age:9,indicatie:'Scoliose',schema:''}
   ],
   ratings:[]
 };

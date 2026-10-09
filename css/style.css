@@ -86,20 +86,26 @@ textarea{resize:vertical;min-height:60px}
 .drag-ghost{position:fixed;z-index:100;pointer-events:none;transform:rotate(-2deg);box-shadow:0 12px 30px rgb(0 0 0 / .22);opacity:.95}
 
 /* Schema-bord */
-.board{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px;align-items:start}
+.board{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));gap:14px;align-items:start}
 .col{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0;transition:border-color .15s,background .15s}
 .col.over{border-color:var(--accent);background:var(--accent-soft)}
 .col-head{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+.col-head h3{text-wrap:pretty}
 .chips{display:flex;gap:6px;flex-wrap:wrap}
 .chip{font-size:.78rem;padding:2px 9px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-weight:600}
 .chip.warn{background:var(--warn-soft);color:var(--warn)}
 .items{display:flex;flex-direction:column;gap:8px;min-height:56px}
 .items:empty::after{content:"Sleep hier oefenkaarten naartoe";display:grid;place-items:center;min-height:56px;border:1.5px dashed var(--line);border-radius:10px;color:var(--muted);font-size:.88rem}
 .drop-line{height:4px;border-radius:4px;background:var(--accent);margin:-2px 0}
-.dose-edit{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}
-.dose-edit label{display:flex;flex-direction:column;font-size:.7rem;color:var(--muted);font-weight:600;gap:2px}
-.dose-edit input{padding:4px 6px;font-size:.9rem}
-.col-foot select{font-size:.88rem;color:var(--muted)}
+.card.item{flex-wrap:wrap}
+.dose-edit{flex:1 1 100%;display:grid;grid-template-columns:repeat(2,1fr);gap:8px 10px;margin:4px 0 2px;padding:10px;border-radius:10px;background:var(--bg)}
+.dose-edit label{display:flex;flex-direction:column;font-size:.78rem;color:var(--muted);font-weight:600;gap:3px}
+.dose-edit input{padding:8px 10px;font:500 1.05rem var(--mono);text-align:center;background:var(--surface)}
+.col-foot{display:flex;flex-direction:column;gap:6px}
+.col-foot select{font-size:.9rem;color:var(--muted);width:100%}
+.col-count{font-size:.82rem;color:var(--muted);text-align:right}
+.new-col-wrap{display:flex;flex-direction:column;gap:10px}
+.new-col-wrap .imp-tile{min-height:90px}
 .new-col{border:1.5px dashed var(--line);background:transparent;border-radius:14px;color:var(--accent);font:600 .95rem var(--body);cursor:pointer;min-height:120px}
 .trash{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:90;background:var(--danger-soft);color:var(--danger);border:2px dashed var(--danger);border-radius:14px;padding:14px 28px;font-weight:600;display:flex;gap:8px;align-items:center;white-space:nowrap}
 .trash.over{background:var(--danger);color:var(--surface)}
@@ -281,3 +287,13 @@ body:is([data-modus="login"],[data-modus="laden"]) .seg{visibility:hidden}
 .login .lede{text-align:center;margin:0}
 .login .btn{align-self:stretch;margin-top:4px}
 .demo-balk{margin:16px 0 0;padding:8px 14px;border-radius:12px;background:var(--warn-soft);color:var(--warn);font-size:.88rem;border:1px dashed var(--warn)}
+
+/* Zoeken en pagina's */
+.zoekbalk{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px}
+.zoekbalk .zoek{flex:2 1 220px;padding-left:34px;background:var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Ccircle cx='8.5' cy='8.5' r='5.5' fill='none' stroke='%235c524b' stroke-width='2'/%3E%3Cpath d='M13 13l4 4' stroke='%235c524b' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat 10px center/16px}
+.zoekbalk select{flex:1 1 160px;width:auto;background:var(--surface)}
+.pager{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:14px;font-size:.9rem;color:var(--muted)}
+.indicatie{display:inline-block;margin-left:8px;font-size:.75rem;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:999px;padding:1px 8px;vertical-align:1px}
+.imp-inst{display:block;color:var(--muted)!important;font-size:.78rem}
+.chips .indicatie{margin-left:0;font-size:.78rem;padding:2px 9px}
+.field .hint{font-size:.78rem;color:var(--muted);font-weight:400}
